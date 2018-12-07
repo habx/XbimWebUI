@@ -746,7 +746,6 @@ xViewer.prototype._initAttributesAndUniforms = function () {
     this._meterUniformPointer = gl.getUniformLocation(this._shaderProgram, "uMeter");
     this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, "uRenderingMode");
     this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, "uHighlightColour");
-    this._sinUniformPointer = gl.getUniformLocation(this._shaderProgram, "uSin");
 
     this._pointers = {
         normalAttrPointer: gl.getAttribLocation(this._shaderProgram, "aNormal"),
@@ -1069,10 +1068,6 @@ xViewer.prototype.draw = function () {
     }
 
     //set uniforms (these may quickly change between calls to draw)
-
-    var period = 1500
-
-    gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % period) / period))
     gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this._pMatrix);
     gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this._mvMatrix);
     gl.uniform4fv(this._lightAUniformPointer, new Float32Array(this.lightA));

@@ -1,4 +1,3 @@
-
 attribute highp float aStyleIndex;
 attribute highp float aProduct;
 attribute highp vec3 aPosition;
@@ -15,9 +14,6 @@ uniform vec4 ulightB;
 
 //Highlighting colour
 uniform vec4 uHighlightColour;
-
-//Highlighting colour
-uniform float uSin;
 
 //One meter
 uniform float uMeter;
@@ -144,7 +140,7 @@ void main(void) {
 			}
 		}
 		if (state == 253) { //highlighted
-			baseColor = vec4(uHighlightColour.rgb, uHighlightColour.a * uSin);
+			baseColor = uHighlightColour;
 		}
 		if (uRenderingMode != 2 && state != 253) {
 			baseColor = getColor();

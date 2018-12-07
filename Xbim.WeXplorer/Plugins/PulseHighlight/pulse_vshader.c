@@ -38,16 +38,11 @@ void main(void) {
     return;
   }
 
-  //transform data to simulate camera perspective and position
-  vec3 vertex = getVertexPosition();
-  vec3 normal = getNormal();
-  vec3 backNormal = normal * -1.0;
-
-  vec4 baseColor = vec4(uHighlightColour.rgb, uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMax) * uSin);
+  vec4 baseColor = vec4(uHighlightColour.rgb, uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin);
 
   vFrontColor = baseColor;
   vBackColor = baseColor;
 
   vPosition = aPosition;
-  gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0);
+  gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 1.0);
 }

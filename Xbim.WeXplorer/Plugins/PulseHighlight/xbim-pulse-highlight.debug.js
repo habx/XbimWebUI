@@ -1,38 +1,28 @@
 /**
- * This is constructor of the Navigation Cube plugin for {@link xViewer xBIM Viewer}. It gets optional Image as an argument.
- * The image will be used as a texture of the navigation cube. If you don't specify eny image default one will be used.
- * Image has to be square and its size has to be power of 2.
+ * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
  * @name xPulseHighlight
  * @constructor
- * @classdesc This is a plugin for xViewer which renders interactive navigation cube. It is customizable in terms of alpha
- * behaviour and its position on the viewer canvas. Use of plugin:
+ * @classdesc This is a plugin for xViewer which renders the highlighted parts in a pulsating effect. It is customizable in terms of alpha
+ * behaviour and pulse period. Use of plugin:
  *
- *     var cube = new xPulseHighlight();
- *     viewer.addPlugin(cube);
+ *     var pulseHighlight = new xPulseHighlight();
+ *     viewer.addPlugin(pulseHighlight);
  *
- * You can specify your own texture of the cube as an [Image](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/Image)
- * object argumen in constructor. If you don't specify any image default texture will be used (you can also use this one and enhance it if you want):
- *
- * ![Cube texture](cube_texture.png)
- *
- * @param {Image} [image = null] - optional image to be used for a cube texture.
 */
-function xPulseHighlight(image) {
-    this._image = image;
-
+function xPulseHighlight() {
     this._initialized = false;
 
     /**
     * Min alpha of the pulse effect
     * @member {Number} xPulseHighlight#pulseAlphaMin
     */
-    this.pulseAlphaMin = 0.2;
+    this.pulseAlphaMin = 0.3;
 
     /**
     * Max alpha of the pulse effect
     * @member {Number} xPulseHighlight#pulseAlphaMin
     */
-    this.pulseAlphaMax = 0.8;
+    this.pulseAlphaMax = 0.6;
 
     /**
     * Period of the pulse (in seconds)
@@ -54,13 +44,33 @@ xPulseHighlight.prototype.init = function (xviewer) {
     this._alphaMax = this.pulseAlphaMax;
     this._period = this.period * 1000;
 
+    this._highlightingColor = this.viewer.highlightingColour;
+
+    this.viewer.highlightingColour = [0.0, 0.0, 0.0, 0.0];
+
     //set own shader for init
     gl.useProgram(this._shader);
 
+    this._pointers = { }
+
     //create uniform and attribute pointers
-    this._alphaMinUniformPointer = gl.getUniformLocation(this._shader, "uAlphaMin");
-    this._alphaMaxUniformPointer = gl.getUniformLocation(this._shader, "uAlphaMax");
+    this._alphaMinUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMin");
+    this._alphaMaxUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMax");
     this._sinUniformPointer = gl.getUniformLocation(this._shader, "uSin");
+
+    // Base uniforms
+    this._pMatrixUniformPointer = gl.getUniformLocation(this._shader, "uPMatrix");
+    this._mvMatrixUniformPointer = gl.getUniformLocation(this._shader, "uMVMatrix");
+    this._clippingPlaneUniformPointer = gl.getUniformLocation(this._shader, "uClippingPlane");
+    this._highlightingColourUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColour");
+
+    // Base attributes
+    this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition"),
+    this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState"),
+
+    //enable vertex attributes arrays
+    gl.enableVertexAttribArray(this._positionAttrPointer);
+    gl.enableVertexAttribArray(this._stateAttrPointer);
 
     //reset original shader program
     gl.useProgram(this.viewer._shaderProgram);
@@ -74,11 +84,7 @@ xPulseHighlight.prototype.onBeforePick = function () { };
 
 xPulseHighlight.prototype.onAfterDraw = function() {
     var gl = this.setActive();
-
-    gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
-    gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
-    gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % this._period) / this._period));
-
+    
     this.draw();
 
     this.setInactive();
@@ -104,9 +110,30 @@ xPulseHighlight.prototype.setInactive = function () {
     gl.useProgram(this.viewer._shaderProgram);
 };
 
-xPulseHighlight.prototype.draw = function() {
+
+xPulseHighlight.prototype.draw = function () {
     if (!this._initialized) return;
     var gl = this.viewer._gl;
+
+    gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this.viewer._pMatrix);
+    gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.viewer._mvMatrix);
+    gl.uniform4fv(this._clippingPlaneUniformPointer, new Float32Array(this.viewer.clippingPlane));
+
+    gl.uniform4fv(
+        this._highlightingColourUniformPointer,
+        new Float32Array(
+            [
+                this._highlightingColor[0] / 255.0,
+                this._highlightingColor[1] / 255.0,
+                this._highlightingColor[2] / 255.0,
+                this._highlightingColor[3]
+            ]
+        )
+    );
+
+    gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
+    gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
+    gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % this._period) / this._period));
 
     gl.disable(gl.DEPTH_TEST);
     this.viewer._handles.forEach(this.drawHandle.bind(this))
@@ -118,8 +145,13 @@ xPulseHighlight.prototype.drawHandle = function (handle) {
 
     if (handle.stopped) return;
 
-    handle.setActive(this._pointers);
+    //set attributes and uniforms
+    gl.bindBuffer(gl.ARRAY_BUFFER, handle.vertexBuffer);
+    gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, handle.stateBuffer);
+    gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
+    
     const spans = []
 
     const currentSpan = []
@@ -169,7 +201,7 @@ xPulseHighlight.prototype._initShader = function () {
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     compile(fragmentShader, xShaders.pulse_fshader);
 
-    //vertex shader (the more complicated one)
+    //vertex shader
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     compile(vertexShader, xShaders.pulse_vshader);
 

@@ -121,6 +121,7 @@
     <Content Include="Plugins\NavigationHome\xbim-navigation-home.debug.js" />
     <Content Include="Plugins\PulseHighlight\pulse_fshader.c" />
     <Content Include="Plugins\PulseHighlight\pulse_vshader.c" />
+    <Content Include="Plugins\PulseHighlight\xbim-pulse-highlight-shaders.debug.js" />
     <Content Include="Plugins\PulseHighlight\xbim-pulse-highlight.debug.js" />
     <Content Include="Resources\doctemplate\publish.js" />
     <Content Include="Resources\doctemplate\static\1_Hello_building.live.html" />
