@@ -22,6 +22,7 @@
     <IISExpressUseClassicPipelineMode />
     <TypeScriptToolsVersion>1.0</TypeScriptToolsVersion>
     <UseGlobalApplicationHostFile />
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -118,6 +119,9 @@
     <Content Include="Plugins\NavigationCube\xbim-navigation-cube-textures.debug.js" />
     <Content Include="Plugins\NavigationHome\xbim-navigation-home-textures.debug.js" />
     <Content Include="Plugins\NavigationHome\xbim-navigation-home.debug.js" />
+    <Content Include="Plugins\PulseHighlight\pulse_fshader.c" />
+    <Content Include="Plugins\PulseHighlight\pulse_vshader.c" />
+    <Content Include="Plugins\PulseHighlight\xbim-pulse-highlight.debug.js" />
     <Content Include="Resources\doctemplate\publish.js" />
     <Content Include="Resources\doctemplate\static\1_Hello_building.live.html" />
     <Content Include="Resources\doctemplate\static\3_Eventful_building.live.html" />
@@ -265,6 +269,7 @@
       <DependentUpon>Web.config</DependentUpon>
     </None>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

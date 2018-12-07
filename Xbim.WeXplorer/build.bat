@@ -1,6 +1,7 @@
 rem Generate JS file containing all shaders as a JS strings. Shaders are authored in *.c files which makes it easier for development and it has partially right syntax highlighting
 Utilities\spacker.exe Viewer xbim-shaders.debug.js -min
 Utilities\spacker.exe Plugins\NavigationCube xbim-navigation-cube-shaders.debug.js -min
+Utilities\spacker.exe Plugins\PulseHighlight xbim-pulse-highlight-shaders.debug.js -min
 
 rem Create debug bundle. It contains all JS source code in one file including all comments. This is easy to reference and still possible to debug
 type Resources\xbim-disclaimer.txt > Build\xbim-viewer.debug.bundle.js
@@ -40,8 +41,15 @@ rem Create build files for the home navigation plugin
 type Resources\xbim-disclaimer.txt > Build\xbim-navigation-home.js
 type Plugins\NavigationHome\*.debug.js >> Build\xbim-navigation-home.js
 type Resources\xbim-disclaimer.txt > Build\xbim-navigation-home.min.js
-type Plugins\NavigationCube\*.debug.js | Utilities\jsmin.exe >> Build\xbim-navigation-home.min.js
+type Plugins\NavigationHome\*.debug.js | Utilities\jsmin.exe >> Build\xbim-navigation-home.min.js
 xcopy /y Build\xbim-navigation-home.js Resources\doctemplate\static\scripts
+
+rem Create build files for the cube navigation plugin
+type Resources\xbim-disclaimer.txt > Build\xbim-pulse-highlight.js
+type Plugins\PulseHighlight\*.debug.js >> Build\xbim-pulse-highlight.js
+type Resources\xbim-disclaimer.txt > Build\xbim-pulse-highlight.min.js
+type Plugins\PulseHighlight\*.debug.js | Utilities\jsmin.exe >> Build\xbim-pulse-highlight.min.js
+xcopy /y Build\xbim-pulse-highlight.js Resources\doctemplate\static\scripts
 
 rem Create build file for the loader
 type Resources\xbim-disclaimer.txt > Build\xbim-loader.debug.js

@@ -88,12 +88,12 @@ function xViewer(canvas, preserveDrawingBuffer) {
     * Array of four integers between 0 and 255 representing RGBA colour components. This defines background colour of the viewer. You can change this value at any time with instant effect.
     * @member {Number[]} xViewer#background
     */
-    this.background = [230, 230, 230, 255];
+    this.background = [230, 230, 230, 1.0];
     /**
     * Array of four integers between 0 and 255 representing RGBA colour components. This defines colour for highlighted elements. You can change this value at any time with instant effect.
     * @member {Number[]} xViewer#highlightingColour
     */
-    this.highlightingColour = [255, 173, 33, 255];
+    this.highlightingColour = [255, 173, 33, 1.0];
     /**
     * Array of four floats. It represents Light A's position <strong>XYZ</strong> and intensity <strong>I</strong> as [X, Y, Z, I]. Intensity should be in range 0.0 - 1.0.
     * @member {Number[]} xViewer#lightA
@@ -746,26 +746,22 @@ xViewer.prototype._initAttributesAndUniforms = function () {
     this._meterUniformPointer = gl.getUniformLocation(this._shaderProgram, "uMeter");
     this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, "uRenderingMode");
     this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, "uHighlightColour");
+    this._sinUniformPointer = gl.getUniformLocation(this._shaderProgram, "uSin");
 
     this._pointers = {
         normalAttrPointer: gl.getAttribLocation(this._shaderProgram, "aNormal"),
-        indexlAttrPointer: gl.getAttribLocation(this._shaderProgram, "aVertexIndex"),
+        positionAttrPointer: gl.getAttribLocation(this._shaderProgram, "aPosition"),
         productAttrPointer: gl.getAttribLocation(this._shaderProgram, "aProduct"),
         stateAttrPointer: gl.getAttribLocation(this._shaderProgram, "aState"),
         styleAttrPointer: gl.getAttribLocation(this._shaderProgram, "aStyleIndex"),
-        transformationAttrPointer: gl.getAttribLocation(this._shaderProgram, "aTransformationIndex"),
-        vertexSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uVertexSampler"),
-        matrixSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uMatrixSampler"),
         styleSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uStyleSampler"),
         stateStyleSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uStateStyleSampler"),
-        vertexTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uVertexTextureSize"),
-        matrixTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uMatrixTextureSize"),
         styleTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uStyleTextureSize")
     };
 
     //enable vertex attributes arrays
+    gl.enableVertexAttribArray(this._pointers.positionAttrPointer);
     gl.enableVertexAttribArray(this._pointers.normalAttrPointer);
-    gl.enableVertexAttribArray(this._pointers.indexlAttrPointer);
     gl.enableVertexAttribArray(this._pointers.productAttrPointer);
     gl.enableVertexAttribArray(this._pointers.stateAttrPointer);
     gl.enableVertexAttribArray(this._pointers.styleAttrPointer);
@@ -1035,7 +1031,7 @@ xViewer.prototype.draw = function () {
     if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this._isChanged())) {
         if (!this._userAction) return;
     }
-    this._userAction = false;
+    this._userAction = true; // so that we render all the time, for uSin update
 
     //call all before-draw plugins
     this._plugins.forEach(function (plugin) {
@@ -1054,7 +1050,7 @@ xViewer.prototype.draw = function () {
 
     gl.useProgram(this._shaderProgram);
     gl.viewport(0, 0, width, height);
-    gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3] / 255);
+    gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     //set up camera
@@ -1073,6 +1069,10 @@ xViewer.prototype.draw = function () {
     }
 
     //set uniforms (these may quickly change between calls to draw)
+
+    var period = 1500
+
+    gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % period) / period))
     gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this._pMatrix);
     gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this._mvMatrix);
     gl.uniform4fv(this._lightAUniformPointer, new Float32Array(this.lightA));
@@ -1083,11 +1083,17 @@ xViewer.prototype.draw = function () {
     gl.uniform1i(this._colorCodingUniformPointer, 0);
 
     //update highlighting colour
-    gl.uniform4fv(this._highlightingColourUniformPointer, new Float32Array(
-        [this.highlightingColour[0]/255.0, 
-        this.highlightingColour[1]/255.0, 
-        this.highlightingColour[2]/255.0, 
-        this.highlightingColour[3]/255.0]));
+    gl.uniform4fv(
+        this._highlightingColourUniformPointer,
+        new Float32Array(
+            [
+                this.highlightingColour[0] / 255.0, 
+                this.highlightingColour[1] / 255.0, 
+                this.highlightingColour[2] / 255.0, 
+                this.highlightingColour[3]
+            ]
+        )
+    );
 
     //check for x-ray mode
     if (this.renderingMode == 'x-ray')

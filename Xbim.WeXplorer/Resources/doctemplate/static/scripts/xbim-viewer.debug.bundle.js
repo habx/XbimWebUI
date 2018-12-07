@@ -258,7 +258,7 @@ xModelGeometry.prototype.parse = function (binReader) {
     };
 
     //create target buffers of correct size (avoid reallocation of memory)
-    this.vertices = new Float32Array(square(4, numVertices * 3));
+    this.vertices = new Float32Array(numTriangles * 3 * 3);
     this.normals = new Uint8Array(numTriangles * 6);
     this.indices = new Float32Array(numTriangles * 3);
     this.styleIndices = new Uint16Array(numTriangles * 3);
@@ -346,12 +346,21 @@ xModelGeometry.prototype.parse = function (binReader) {
             if (styleItem === null)
                 styleItem = defaultStyle;
 
+            const matrix = mat4.create()
+            if (transformation) {
+                for (var i = 0; i < 4; i++) {
+                    for (var j = 0; j < 4; j++) {
+                        matrix[(i * 4) + j] = transformation[(i * 4) + j];
+                    }
+                }
+            }
+
             shapeList.push({
                 pLabel: prodLabel,
                 iLabel: instanceLabel,
                 style: styleItem.index,
                 transparent: styleItem.transparent,
-                transform: transformation != null ? iTransform++ : 0xFFFF
+                transformation: matrix
             });
         }
 
@@ -396,9 +405,20 @@ xModelGeometry.prototype.parse = function (binReader) {
                 this.indices[iIndex] = shapeGeom.indices[i] + iVertex / 3;
                 this.products[iIndex] = shape.pLabel;
                 this.styleIndices[iIndex] = shape.style;
-                this.transformations[iIndex] = shape.transform;
                 this.states[2 * iIndex] = state; //set state
                 this.states[2 * iIndex + 1] = 0xFF; //default style
+
+                const vertex = vec4.create()
+                vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]]
+                vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1]
+                vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2]
+                vertex[3] = 1.0
+
+                const transformedVertex = vec4.transformMat4(vec4.create(), vertex, shape.transformation)
+
+                this.vertices[3 * iIndex] = transformedVertex[0];
+                this.vertices[3 * iIndex + 1] = transformedVertex[1];
+                this.vertices[3 * iIndex + 2] = transformedVertex[2];
 
                 iIndex++;
             }
@@ -410,9 +430,8 @@ xModelGeometry.prototype.parse = function (binReader) {
             else iIndexForward += shapeGeom.indices.length;
         }, this);
 
-        //copy geometry and keep track of amount so that we can fix indices to right position
+        //keep track of amount so that we can fix indices to right position
         //this must be the last step to have correct iVertex number above
-        this.vertices.set(shapeGeom.vertices, iVertex);
         iVertex += shapeGeom.vertices.length;
         shapeGeom = null;
     }
@@ -471,22 +490,17 @@ function xModelHandle(gl, model, fpt) {
     this.count = model.indices.length;
 
     //data structure 
-    this.vertexTexture = gl.createTexture();
-    this.matrixTexture = gl.createTexture();
     this.styleTexture = gl.createTexture();
     this.stateStyleTexture = gl.createTexture();
-
-    this.vertexTextureSize = 0;
-    this.matrixTextureSize = 0;
+    
     this.styleTextureSize = 0;
 
+    this.vertexBuffer = gl.createBuffer();
     this.normalBuffer = gl.createBuffer();
-    this.indexBuffer = gl.createBuffer();
     this.productBuffer = gl.createBuffer();
     this.styleBuffer = gl.createBuffer();
     this.stateBuffer = gl.createBuffer();
-    this.transformationBuffer = gl.createBuffer();
-
+    
     //small texture which can be used to overwrite appearance of the products
     this.stateStyle = new Uint8Array(15 * 15 * 4);
     this._feedCompleted = false;
@@ -538,15 +552,6 @@ xModelHandle.prototype.setActive = function (pointers) {
 
     var gl = this._gl;
     //set predefined textures
-    if (this.vertexTextureSize > 0) {
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.vertexTexture);
-    }
-
-    if (this.matrixTextureSize > 0) {
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, this.matrixTexture);
-    }
 
     if (this.styleTextureSize > 0) {
         gl.activeTexture(gl.TEXTURE3);
@@ -559,11 +564,11 @@ xModelHandle.prototype.setActive = function (pointers) {
 
 
     //set attributes and uniforms
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.vertexAttribPointer(pointers.positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
     gl.vertexAttribPointer(pointers.normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.indexBuffer);
-    gl.vertexAttribPointer(pointers.indexlAttrPointer, 1, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.productBuffer);
     gl.vertexAttribPointer(pointers.productAttrPointer, 1, gl.FLOAT, false, 0, 0);
@@ -574,15 +579,8 @@ xModelHandle.prototype.setActive = function (pointers) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.styleBuffer);
     gl.vertexAttribPointer(pointers.styleAttrPointer, 1, gl.UNSIGNED_SHORT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.transformationBuffer);
-    gl.vertexAttribPointer(pointers.transformationAttrPointer, 1, gl.FLOAT, false, 0, 0);
-
-    gl.uniform1i(pointers.vertexSamplerUniform, 1);
-    gl.uniform1i(pointers.matrixSamplerUniform, 2);
     gl.uniform1i(pointers.styleSamplerUniform, 3);
     gl.uniform1i(pointers.stateStyleSamplerUniform, 4);
-    gl.uniform1i(pointers.vertexTextureSizeUniform, this.vertexTextureSize);
-    gl.uniform1i(pointers.matrixTextureSizeUniform, this.matrixTextureSize);
     gl.uniform1i(pointers.styleTextureSizeUniform, this.styleTextureSize);
 };
 
@@ -636,18 +634,15 @@ xModelHandle.prototype.getProductMap = function (ID) {
 
 xModelHandle.prototype.unload = function () {
     var gl = this._gl;
-
-    gl.deleteTexture(this.vertexTexture);
-    gl.deleteTexture(this.matrixTexture);
+    
     gl.deleteTexture(this.styleTexture);
     gl.deleteTexture(this.stateStyleTexture);
 
+    gl.deleteBuffer(this.certexBuffer);
     gl.deleteBuffer(this.normalBuffer);
-    gl.deleteBuffer(this.indexBuffer);
     gl.deleteBuffer(this.productBuffer);
     gl.deleteBuffer(this.styleBuffer);
     gl.deleteBuffer(this.stateBuffer);
-    gl.deleteBuffer(this.transformationBuffer);
 };
 
 xModelHandle.prototype.feedGPU = function () {
@@ -659,16 +654,13 @@ xModelHandle.prototype.feedGPU = function () {
     var model = this._model;
 
     //fill all buffers
+    this._bufferData(this.vertexBuffer, model.vertices);
     this._bufferData(this.normalBuffer, model.normals);
-    this._bufferData(this.indexBuffer, model.indices);
     this._bufferData(this.productBuffer, model.products);
     this._bufferData(this.stateBuffer, model.states);
-    this._bufferData(this.transformationBuffer, model.transformations);
     this._bufferData(this.styleBuffer, model.styleIndices);
 
-    //fill in all textures
-    this.vertexTextureSize = this._bufferTexture(this.vertexTexture, model.vertices, 3);
-    this.matrixTextureSize = this._bufferTexture(this.matrixTexture, model.matrices, 4);
+    //fill in all textures;
     this.styleTextureSize = this._bufferTexture(this.styleTexture, model.styles);
     //this has a constant size 15 which is defined in vertex shader
     this._bufferTexture(this.stateStyleTexture, this.stateStyle);
@@ -1056,9 +1048,9 @@ var xProductType = {
 * will get lost when the file is regenerated. Original content is located in *.c files.
 */
 if (!window.xShaders) window.xShaders = {}
-xShaders.fragment_shader = " precision mediump float; uniform vec4 uClippingPlane; varying vec4 vFrontColor; varying vec4 vBackColor; varying vec3 vPosition; varying float vDiscard; void main(void) { if ( vDiscard > 0.001) discard; if (length(uClippingPlane) > 0.001) { vec4 p = uClippingPlane; vec3 x = vPosition; float distance = (dot(p.xyz, x) + p.w) / length(p.xyz); if (distance < 0.0){ discard; } } gl_FragColor = gl_FrontFacing ? vFrontColor : vBackColor; }";
-xShaders.vertex_shader = " attribute highp float aVertexIndex; attribute highp float aTransformationIndex; attribute highp float aStyleIndex; attribute highp float aProduct; attribute highp vec2 aState; attribute highp vec2 aNormal; uniform mat4 uMVMatrix; uniform mat4 uPMatrix; uniform vec4 ulightA; uniform vec4 ulightB; uniform vec4 uHighlightColour; uniform float uMeter; uniform bool uColorCoding; uniform int uRenderingMode; uniform highp sampler2D uVertexSampler; uniform int uVertexTextureSize; uniform highp sampler2D uMatrixSampler; uniform int uMatrixTextureSize; uniform highp sampler2D uStyleSampler; uniform int uStyleTextureSize; uniform highp sampler2D uStateStyleSampler; varying vec4 vFrontColor; varying vec4 vBackColor; varying vec3 vPosition; varying float vDiscard; vec3 getNormal(){ float U = aNormal[0]; float V = aNormal[1]; float PI = 3.1415926535897932384626433832795; float lon = U / 252.0 * 2.0 * PI; float lat = V / 252.0 * PI; float x = sin(lon) * sin(lat); float z = cos(lon) * sin(lat); float y = cos(lat); return normalize(vec3(x, y, z)); } vec4 getIdColor(){ float product = floor(aProduct + 0.5); float B = floor (product/(256.0*256.0)); float G = floor((product  - B * 256.0*256.0)/256.0); float R = mod(product, 256.0); return vec4(R/255.0, G/255.0, B/255.0, 1.0); } vec2 getTextureCoordinates(int index, int size) { float x = float(index - (index / size) * size); float y = float(index / size); float pixelSize = 1.0 / float(size); return vec2((x + 0.5) * pixelSize, (y + 0.5) * pixelSize); } vec4 getColor(){ int restyle = int(floor(aState[1] + 0.5)); if (restyle > 224){ int index = int (floor(aStyleIndex + 0.5)); vec2 coords = getTextureCoordinates(index, uStyleTextureSize); return texture2D(uStyleSampler, coords); } vec2 coords = getTextureCoordinates(restyle, 15); return texture2D(uStateStyleSampler, coords); } vec3 getVertexPosition(){ int index = int (floor(aVertexIndex +0.5)); vec2 coords = getTextureCoordinates(index, uVertexTextureSize); vec3 point = vec3(texture2D(uVertexSampler, coords)); int tIndex = int(floor(aTransformationIndex + 0.5)); if (tIndex != 65535) { tIndex *=4; mat4 transform = mat4( texture2D(uMatrixSampler, getTextureCoordinates(tIndex, uMatrixTextureSize)), texture2D(uMatrixSampler, getTextureCoordinates(tIndex+1, uMatrixTextureSize)), texture2D(uMatrixSampler, getTextureCoordinates(tIndex+2, uMatrixTextureSize)), texture2D(uMatrixSampler, getTextureCoordinates(tIndex+3, uMatrixTextureSize)) ); return vec3(transform * vec4(point, 1.0)); } return point; } void main(void) { int state = int(floor(aState[0] + 0.5)); vDiscard = 0.0; if (state == 254) { vDiscard = 1.0; vFrontColor = vec4(0.0, 0.0, 0.0, 0.0); vBackColor = vec4(0.0, 0.0, 0.0, 0.0); vPosition = vec3(0.0, 0.0, 0.0); gl_Position = vec4(0.0, 0.0, 0.0, 1.0); return; } vec3 vertex = getVertexPosition(); vec3 normal = getNormal(); vec3 backNormal = normal * -1.0; if (uColorCoding){ vec4 idColor = getIdColor(); vFrontColor = idColor; vBackColor = idColor; } else{ float lightAIntensity = ulightA[3]; vec3 lightADirection = normalize(ulightA.xyz - vertex); float lightBIntensity = ulightB[3]; vec3 lightBDirection = normalize(ulightB.xyz - vertex); float lightWeightA = max(dot(normal, lightADirection ) * lightAIntensity, 0.0); float lightWeightB = max(dot(normal, lightBDirection ) * lightBIntensity, 0.0); float backLightWeightA = max(dot(backNormal, lightADirection) * lightAIntensity, 0.0); float backLightWeightB = max(dot(backNormal, lightBDirection) * lightBIntensity, 0.0); float lightWeighting = lightWeightA + lightWeightB + 0.4; float backLightWeighting = backLightWeightA + backLightWeightB + 0.4; vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0); if (uRenderingMode == 2){ if (state == 252){ baseColor = getColor(); } else{ baseColor = vec4(0.0, 0.0, 0.3, 0.5); } } if (state == 253) { baseColor = uHighlightColour; } if (uRenderingMode != 2 && state != 253){ baseColor = getColor(); } if (baseColor.a < 0.98 && uRenderingMode == 0) { vec3 trans = -0.002 * uMeter * normalize(normal); vertex = vertex + trans; } vFrontColor = vec4(baseColor.rgb * lightWeighting, baseColor.a); vBackColor = vec4(baseColor.rgb * backLightWeighting, baseColor.a); } vPosition = vertex; gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0); }";
-xShaders.vertex_shader_noFPT = " attribute highp float aVertexIndex; attribute highp float aTransformationIndex; attribute highp float aStyleIndex; attribute highp float aProduct; attribute highp float aState; attribute highp vec2 aNormal; uniform mat4 uMVMatrix; uniform mat4 uPMatrix; uniform vec4 ulightA; uniform vec4 ulightB; uniform bool uColorCoding; uniform bool uFloatingPoint; uniform highp sampler2D uVertexSampler; uniform int uVertexTextureSize; uniform highp sampler2D uMatrixSampler; uniform int uMatrixTextureSize; uniform highp sampler2D uStyleSampler; uniform int uStyleTextureSize; uniform highp sampler2D uStateStyleSampler; int stateStyleTextureSize = 15; varying vec4 vColor; varying vec3 vPosition; vec3 getNormal(){ float U = aNormal[0]; float V = aNormal[1]; float PI = 3.1415926535897932384626433832795; float u = ((U / 252.0) * (2.0 * PI)) - PI; float v = ((V / 252.0) * (2.0 * PI)) - PI; float x = sin(v) * cos(u); float y = sin(v) * sin(u); float z = cos(v); return normalize(vec3(x, y, z)); } vec4 getIdColor(){ float R = mod(aProduct, 256.0) / 255.0; float G = floor(aProduct/256.0) / 255.0; float B = floor (aProduct/(256.0*256.0)) / 255.0; return vec4(R, G, B, 1.0); } vec2 getVertexTextureCoordinates(int index, int size) { float x = float(index - (index / size) * size); float y = float(index / size); float pixelSize = 1.0 / float(size); return vec2((x + 0.5) * pixelSize, (y + 0.5) * pixelSize); } int getByteFromScale(float base) { float result = base * 255.0; int correction = fract(result) >= 0.5 ? 1 : 0; return int(result) + correction; } ivec4 getPixel(int index, sampler2D sampler, int size) { vec2 coords = getVertexTextureCoordinates(index, size); vec4 pixel = texture2D(sampler, coords); return ivec4( getByteFromScale(pixel.r), getByteFromScale(pixel.g), getByteFromScale(pixel.b), getByteFromScale(pixel.a) ); } void getBits(ivec4 pixel, out int result[32]) { for (int i = 0; i < 4; i++) { int actualByte = pixel[i]; for (int j = 0; j < 8; j++) { result[31 - (j + i * 8)] =  actualByte - (actualByte / 2) * 2; actualByte /= 2; } } } float getFloatFromPixel(ivec4 pixel) { int bits[32]; getBits(pixel, bits); float sign =  bits[0] == 0 ? 1.0 : -1.0; highp float fraction = 1.0; highp float exponent = 0.0; for (int i = 1; i < 9; i++) { exponent += float(bits[9 - i]) * exp2(float (i - 1)); } exponent -= 127.0; for (int i = 9; i < 32; i++) { fraction += float(bits[i]) * exp2(float((-1)*(i-8))); } return sign * fraction * exp2(exponent); } float getFloatFromPixel(int index, sampler2D sampler, int size) { ivec4 pixel = getPixel(index, sampler, size); return getFloatFromPixel(pixel); } vec4 getColor(){ if (floor(aState + 0.5) == 0.0){ int index = int (floor(aStyleIndex + 0.5)); vec2 coords = getVertexTextureCoordinates(index, uStyleTextureSize); return texture2D(uStyleSampler, coords); } else{ return vec4(1.0,1.0,1.0,1.0); } } vec3 getVertexPosition(){ int index = int (floor(aVertexIndex +0.5))* 3; vec3 position = vec3( getFloatFromPixel(index, uVertexSampler, uVertexTextureSize), getFloatFromPixel(index + 1, uVertexSampler, uVertexTextureSize), getFloatFromPixel(index + 2, uVertexSampler, uVertexTextureSize) ); int tIndex = int(floor(aTransformationIndex + 0.5)); if (tIndex != 65535) { tIndex *= 16; mat4 transform = mat4( getFloatFromPixel(tIndex + 0, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 1, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 2, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 3, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 4, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 5, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 6, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 7, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 8, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 9, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 10, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 11, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 12, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 13, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 14, uMatrixSampler, uMatrixTextureSize), getFloatFromPixel(tIndex + 15, uMatrixSampler, uMatrixTextureSize) ); vec4 transformedPosition = transform * vec4(position, 1.0); return vec3(transformedPosition); } return position; } void main(void) { vec3 vertex = getVertexPosition(); vPosition = vertex; gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0); if (uColorCoding){ vColor = getIdColor(); } else{ vec3 normal = getNormal(); float lightAIntensity = ulightA[3]; vec3 lightADirection = normalize(ulightA.xyz - vPosition); float lightBIntensity = ulightB[3]; vec3 lightBDirection = normalize(ulightB.xyz - vPosition); float lightWeightA = max(dot(normal, lightADirection ) * lightAIntensity, 0.0); float lightWeightB = max(dot(normal, lightBDirection ) * lightBIntensity, 0.0); float lightWeighting = lightWeightA + lightWeightB + 0.4; vec4 baseColor = getColor(); vColor = vec4(baseColor.rgb * lightWeighting, baseColor.a); } }";
+xShaders.fragment_shader = " precision highp float; uniform vec4 uClippingPlane; varying vec4 vFrontColor; varying vec4 vBackColor; varying vec3 vPosition; varying float vDiscard; void main(void) { if ( vDiscard > 0.001) discard; if (length(uClippingPlane) > 0.001) { vec4 p = uClippingPlane; vec3 x = vPosition; float distance = (dot(p.xyz, x) + p.w) / length(p.xyz); if (distance < 0.0){ discard; } } gl_FragColor = gl_FrontFacing ? vFrontColor : vBackColor; }";
+xShaders.vertex_shader = " attribute highp float aStyleIndex; attribute highp float aProduct; attribute highp vec3 aPosition; attribute highp vec2 aState; attribute highp vec2 aNormal; uniform mat4 uMVMatrix; uniform mat4 uPMatrix; uniform vec4 ulightA; uniform vec4 ulightB; uniform vec4 uHighlightColour; uniform float uSin; uniform float uMeter; uniform bool uColorCoding; uniform int uRenderingMode; uniform highp sampler2D uStyleSampler; uniform int uStyleTextureSize; uniform highp sampler2D uStateStyleSampler; varying vec4 vFrontColor; varying vec4 vBackColor; varying vec3 vPosition; varying float vDiscard; vec3 getNormal() { float U = aNormal[0]; float V = aNormal[1]; float PI = 3.1415926535897932384626433832795; float lon = U / 252.0 * 2.0 * PI; float lat = V / 252.0 * PI; float x = sin(lon) * sin(lat); float z = cos(lon) * sin(lat); float y = cos(lat); return normalize(vec3(x, y, z)); } vec4 getIdColor() { float product = floor(aProduct + 0.5); float B = floor(product / (256.0*256.0)); float G = floor((product - B * 256.0*256.0) / 256.0); float R = mod(product, 256.0); return vec4(R / 255.0, G / 255.0, B / 255.0, 1.0); } vec2 getTextureCoordinates(int index, int size) { float x = float(index - (index / size) * size); float y = float(index / size); float pixelSize = 1.0 / float(size); return vec2((x + 0.5) * pixelSize, (y + 0.5) * pixelSize); } vec4 getColor() { int restyle = int(floor(aState[1] + 0.5)); if (restyle > 224) { int index = int(floor(aStyleIndex + 0.5)); vec2 coords = getTextureCoordinates(index, uStyleTextureSize); return texture2D(uStyleSampler, coords); } vec2 coords = getTextureCoordinates(restyle, 15); return texture2D(uStateStyleSampler, coords); } vec3 getVertexPosition() { return aPosition; } void main(void) { int state = int(floor(aState[0] + 0.5)); vDiscard = 0.0; if (state == 254) { vDiscard = 1.0; vFrontColor = vec4(0.0, 0.0, 0.0, 0.0); vBackColor = vec4(0.0, 0.0, 0.0, 0.0); vPosition = vec3(0.0, 0.0, 0.0); gl_Position = vec4(0.0, 0.0, 0.0, 1.0); return; } vec3 vertex = getVertexPosition(); vec3 normal = getNormal(); vec3 backNormal = normal * -1.0; if (uColorCoding) { vec4 idColor = getIdColor(); vFrontColor = idColor; vBackColor = idColor; } else { float lightAIntensity = ulightA[3]; vec3 lightADirection = normalize(ulightA.xyz - vertex); float lightBIntensity = ulightB[3]; vec3 lightBDirection = normalize(ulightB.xyz - vertex); float lightWeightA = max(dot(normal, lightADirection) * lightAIntensity, 0.0); float lightWeightB = max(dot(normal, lightBDirection) * lightBIntensity, 0.0); float backLightWeightA = max(dot(backNormal, lightADirection) * lightAIntensity, 0.0); float backLightWeightB = max(dot(backNormal, lightBDirection) * lightBIntensity, 0.0); float lightWeighting = lightWeightA + lightWeightB + 0.4; float backLightWeighting = backLightWeightA + backLightWeightB + 0.4; vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0); if (uRenderingMode == 2) { if (state == 252) { baseColor = getColor(); } else { baseColor = vec4(0.0, 0.0, 0.3, 0.5); } } if (state == 253) { baseColor = vec4(uHighlightColour.rgb, uHighlightColour.a * uSin); } if (uRenderingMode != 2 && state != 253) { baseColor = getColor(); } if (baseColor.a < 0.98 && uRenderingMode == 0) { vec3 trans = -0.002 * uMeter * normalize(normal); vertex = vertex + trans; } vFrontColor = vec4(baseColor.rgb * lightWeighting, baseColor.a); vBackColor = vec4(baseColor.rgb * backLightWeighting, baseColor.a); } vPosition = vertex; gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0); }";
+xShaders.vertex_shader_noFPT = " attribute highp float aStyleIndex; attribute highp float aProduct; attribute highp vec3 aPosition; attribute highp vec2 aState; attribute highp vec2 aNormal; uniform mat4 uMVMatrix; uniform mat4 uPMatrix; uniform vec4 ulightA; uniform vec4 ulightB; uniform vec4 uHighlightColour; uniform float uSin; uniform float uMeter; uniform bool uColorCoding; uniform int uRenderingMode; uniform highp sampler2D uStyleSampler; uniform int uStyleTextureSize; uniform highp sampler2D uStateStyleSampler; varying vec4 vFrontColor; varying vec4 vBackColor; varying vec3 vPosition; varying float vDiscard; vec3 getNormal() { float U = aNormal[0]; float V = aNormal[1]; float PI = 3.1415926535897932384626433832795; float lon = U / 252.0 * 2.0 * PI; float lat = V / 252.0 * PI; float x = sin(lon) * sin(lat); float z = cos(lon) * sin(lat); float y = cos(lat); return normalize(vec3(x, y, z)); } vec4 getIdColor() { float product = floor(aProduct + 0.5); float B = floor(product / (256.0*256.0)); float G = floor((product - B * 256.0*256.0) / 256.0); float R = mod(product, 256.0); return vec4(R / 255.0, G / 255.0, B / 255.0, 1.0); } vec2 getTextureCoordinates(int index, int size) { float x = float(index - (index / size) * size); float y = float(index / size); float pixelSize = 1.0 / float(size); return vec2((x + 0.5) * pixelSize, (y + 0.5) * pixelSize); } vec4 getColor() { int restyle = int(floor(aState[1] + 0.5)); if (restyle > 224) { int index = int(floor(aStyleIndex + 0.5)); vec2 coords = getTextureCoordinates(index, uStyleTextureSize); return texture2D(uStyleSampler, coords); } vec2 coords = getTextureCoordinates(restyle, 15); return texture2D(uStateStyleSampler, coords); } vec3 getVertexPosition() { return aPosition; } void main(void) { int state = int(floor(aState[0] + 0.5)); vDiscard = 0.0; if (state == 254) { vDiscard = 1.0; vFrontColor = vec4(0.0, 0.0, 0.0, 0.0); vBackColor = vec4(0.0, 0.0, 0.0, 0.0); vPosition = vec3(0.0, 0.0, 0.0); gl_Position = vec4(0.0, 0.0, 0.0, 1.0); return; } vec3 vertex = getVertexPosition(); vec3 normal = getNormal(); vec3 backNormal = normal * -1.0; if (uColorCoding) { vec4 idColor = getIdColor(); vFrontColor = idColor; vBackColor = idColor; } else { float lightAIntensity = ulightA[3]; vec3 lightADirection = normalize(ulightA.xyz - vertex); float lightBIntensity = ulightB[3]; vec3 lightBDirection = normalize(ulightB.xyz - vertex); float lightWeightA = max(dot(normal, lightADirection) * lightAIntensity, 0.0); float lightWeightB = max(dot(normal, lightBDirection) * lightBIntensity, 0.0); float backLightWeightA = max(dot(backNormal, lightADirection) * lightAIntensity, 0.0); float backLightWeightB = max(dot(backNormal, lightBDirection) * lightBIntensity, 0.0); float lightWeighting = lightWeightA + lightWeightB + 0.4; float backLightWeighting = backLightWeightA + backLightWeightB + 0.4; vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0); if (uRenderingMode == 2) { if (state == 252) { baseColor = getColor(); } else { baseColor = vec4(0.0, 0.0, 0.3, 0.5); } } if (state == 253) { baseColor = vec4(uHighlightColour.rgb, uHighlightColour.a * uSin); } if (uRenderingMode != 2 && state != 253) { baseColor = getColor(); } if (baseColor.a < 0.98 && uRenderingMode == 0) { vec3 trans = -0.002 * uMeter * normalize(normal); vertex = vertex + trans; } vFrontColor = vec4(baseColor.rgb * lightWeighting, baseColor.a); vBackColor = vec4(baseColor.rgb * backLightWeighting, baseColor.a); } vPosition = vertex; gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0); }";
 
 /**
     * Enumeration for object states.
@@ -1251,12 +1243,12 @@ function xViewer(canvas, preserveDrawingBuffer) {
     * Array of four integers between 0 and 255 representing RGBA colour components. This defines background colour of the viewer. You can change this value at any time with instant effect.
     * @member {Number[]} xViewer#background
     */
-    this.background = [230, 230, 230, 255];
+    this.background = [230, 230, 230, 1.0];
     /**
     * Array of four integers between 0 and 255 representing RGBA colour components. This defines colour for highlighted elements. You can change this value at any time with instant effect.
     * @member {Number[]} xViewer#highlightingColour
     */
-    this.highlightingColour = [255, 173, 33, 255];
+    this.highlightingColour = [255, 173, 33, 1.0];
     /**
     * Array of four floats. It represents Light A's position <strong>XYZ</strong> and intensity <strong>I</strong> as [X, Y, Z, I]. Intensity should be in range 0.0 - 1.0.
     * @member {Number[]} xViewer#lightA
@@ -1909,26 +1901,22 @@ xViewer.prototype._initAttributesAndUniforms = function () {
     this._meterUniformPointer = gl.getUniformLocation(this._shaderProgram, "uMeter");
     this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, "uRenderingMode");
     this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, "uHighlightColour");
+    this._sinUniformPointer = gl.getUniformLocation(this._shaderProgram, "uSin");
 
     this._pointers = {
         normalAttrPointer: gl.getAttribLocation(this._shaderProgram, "aNormal"),
-        indexlAttrPointer: gl.getAttribLocation(this._shaderProgram, "aVertexIndex"),
+        positionAttrPointer: gl.getAttribLocation(this._shaderProgram, "aPosition"),
         productAttrPointer: gl.getAttribLocation(this._shaderProgram, "aProduct"),
         stateAttrPointer: gl.getAttribLocation(this._shaderProgram, "aState"),
         styleAttrPointer: gl.getAttribLocation(this._shaderProgram, "aStyleIndex"),
-        transformationAttrPointer: gl.getAttribLocation(this._shaderProgram, "aTransformationIndex"),
-        vertexSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uVertexSampler"),
-        matrixSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uMatrixSampler"),
         styleSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uStyleSampler"),
         stateStyleSamplerUniform: gl.getUniformLocation(this._shaderProgram, "uStateStyleSampler"),
-        vertexTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uVertexTextureSize"),
-        matrixTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uMatrixTextureSize"),
         styleTextureSizeUniform: gl.getUniformLocation(this._shaderProgram, "uStyleTextureSize")
     };
 
     //enable vertex attributes arrays
+    gl.enableVertexAttribArray(this._pointers.positionAttrPointer);
     gl.enableVertexAttribArray(this._pointers.normalAttrPointer);
-    gl.enableVertexAttribArray(this._pointers.indexlAttrPointer);
     gl.enableVertexAttribArray(this._pointers.productAttrPointer);
     gl.enableVertexAttribArray(this._pointers.stateAttrPointer);
     gl.enableVertexAttribArray(this._pointers.styleAttrPointer);
@@ -2198,7 +2186,7 @@ xViewer.prototype.draw = function () {
     if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this._isChanged())) {
         if (!this._userAction) return;
     }
-    this._userAction = false;
+    this._userAction = true; // so that we render all the time, for uSin update
 
     //call all before-draw plugins
     this._plugins.forEach(function (plugin) {
@@ -2217,7 +2205,7 @@ xViewer.prototype.draw = function () {
 
     gl.useProgram(this._shaderProgram);
     gl.viewport(0, 0, width, height);
-    gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3] / 255);
+    gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     //set up camera
@@ -2236,6 +2224,10 @@ xViewer.prototype.draw = function () {
     }
 
     //set uniforms (these may quickly change between calls to draw)
+
+    var period = 1500
+
+    gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % period) / period))
     gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this._pMatrix);
     gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this._mvMatrix);
     gl.uniform4fv(this._lightAUniformPointer, new Float32Array(this.lightA));
@@ -2246,11 +2238,17 @@ xViewer.prototype.draw = function () {
     gl.uniform1i(this._colorCodingUniformPointer, 0);
 
     //update highlighting colour
-    gl.uniform4fv(this._highlightingColourUniformPointer, new Float32Array(
-        [this.highlightingColour[0]/255.0, 
-        this.highlightingColour[1]/255.0, 
-        this.highlightingColour[2]/255.0, 
-        this.highlightingColour[3]/255.0]));
+    gl.uniform4fv(
+        this._highlightingColourUniformPointer,
+        new Float32Array(
+            [
+                this.highlightingColour[0] / 255.0, 
+                this.highlightingColour[1] / 255.0, 
+                this.highlightingColour[2] / 255.0, 
+                this.highlightingColour[3]
+            ]
+        )
+    );
 
     //check for x-ray mode
     if (this.renderingMode == 'x-ray')

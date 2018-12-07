@@ -26,22 +26,17 @@ function xModelHandle(gl, model, fpt) {
     this.count = model.indices.length;
 
     //data structure 
-    this.vertexTexture = gl.createTexture();
-    this.matrixTexture = gl.createTexture();
     this.styleTexture = gl.createTexture();
     this.stateStyleTexture = gl.createTexture();
-
-    this.vertexTextureSize = 0;
-    this.matrixTextureSize = 0;
+    
     this.styleTextureSize = 0;
 
+    this.vertexBuffer = gl.createBuffer();
     this.normalBuffer = gl.createBuffer();
-    this.indexBuffer = gl.createBuffer();
     this.productBuffer = gl.createBuffer();
     this.styleBuffer = gl.createBuffer();
     this.stateBuffer = gl.createBuffer();
-    this.transformationBuffer = gl.createBuffer();
-
+    
     //small texture which can be used to overwrite appearance of the products
     this.stateStyle = new Uint8Array(15 * 15 * 4);
     this._feedCompleted = false;
@@ -93,15 +88,6 @@ xModelHandle.prototype.setActive = function (pointers) {
 
     var gl = this._gl;
     //set predefined textures
-    if (this.vertexTextureSize > 0) {
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.vertexTexture);
-    }
-
-    if (this.matrixTextureSize > 0) {
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, this.matrixTexture);
-    }
 
     if (this.styleTextureSize > 0) {
         gl.activeTexture(gl.TEXTURE3);
@@ -114,11 +100,11 @@ xModelHandle.prototype.setActive = function (pointers) {
 
 
     //set attributes and uniforms
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+    gl.vertexAttribPointer(pointers.positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
     gl.vertexAttribPointer(pointers.normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.indexBuffer);
-    gl.vertexAttribPointer(pointers.indexlAttrPointer, 1, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this.productBuffer);
     gl.vertexAttribPointer(pointers.productAttrPointer, 1, gl.FLOAT, false, 0, 0);
@@ -129,15 +115,8 @@ xModelHandle.prototype.setActive = function (pointers) {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.styleBuffer);
     gl.vertexAttribPointer(pointers.styleAttrPointer, 1, gl.UNSIGNED_SHORT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.transformationBuffer);
-    gl.vertexAttribPointer(pointers.transformationAttrPointer, 1, gl.FLOAT, false, 0, 0);
-
-    gl.uniform1i(pointers.vertexSamplerUniform, 1);
-    gl.uniform1i(pointers.matrixSamplerUniform, 2);
     gl.uniform1i(pointers.styleSamplerUniform, 3);
     gl.uniform1i(pointers.stateStyleSamplerUniform, 4);
-    gl.uniform1i(pointers.vertexTextureSizeUniform, this.vertexTextureSize);
-    gl.uniform1i(pointers.matrixTextureSizeUniform, this.matrixTextureSize);
     gl.uniform1i(pointers.styleTextureSizeUniform, this.styleTextureSize);
 };
 
@@ -191,18 +170,15 @@ xModelHandle.prototype.getProductMap = function (ID) {
 
 xModelHandle.prototype.unload = function () {
     var gl = this._gl;
-
-    gl.deleteTexture(this.vertexTexture);
-    gl.deleteTexture(this.matrixTexture);
+    
     gl.deleteTexture(this.styleTexture);
     gl.deleteTexture(this.stateStyleTexture);
 
+    gl.deleteBuffer(this.certexBuffer);
     gl.deleteBuffer(this.normalBuffer);
-    gl.deleteBuffer(this.indexBuffer);
     gl.deleteBuffer(this.productBuffer);
     gl.deleteBuffer(this.styleBuffer);
     gl.deleteBuffer(this.stateBuffer);
-    gl.deleteBuffer(this.transformationBuffer);
 };
 
 xModelHandle.prototype.feedGPU = function () {
@@ -214,16 +190,13 @@ xModelHandle.prototype.feedGPU = function () {
     var model = this._model;
 
     //fill all buffers
+    this._bufferData(this.vertexBuffer, model.vertices);
     this._bufferData(this.normalBuffer, model.normals);
-    this._bufferData(this.indexBuffer, model.indices);
     this._bufferData(this.productBuffer, model.products);
     this._bufferData(this.stateBuffer, model.states);
-    this._bufferData(this.transformationBuffer, model.transformations);
     this._bufferData(this.styleBuffer, model.styleIndices);
 
-    //fill in all textures
-    this.vertexTextureSize = this._bufferTexture(this.vertexTexture, model.vertices, 3);
-    this.matrixTextureSize = this._bufferTexture(this.matrixTexture, model.matrices, 4);
+    //fill in all textures;
     this.styleTextureSize = this._bufferTexture(this.styleTexture, model.styles);
     //this has a constant size 15 which is defined in vertex shader
     this._bufferTexture(this.stateStyleTexture, this.stateStyle);
