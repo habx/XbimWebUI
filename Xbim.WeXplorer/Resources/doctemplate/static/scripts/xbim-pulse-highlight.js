@@ -188,7 +188,7 @@ xPulseHighlight.prototype.drawHandle = function (handle) {
     
     const spans = []
 
-    const currentSpan = []
+    let currentSpan = []
 
     for (var i = 0; i < handle._model.states.length; i += 2) {
         if (handle._model.states[i] === xState.HIGHLIGHTED) {

@@ -1155,7 +1155,7 @@ xTriangulatedShape.prototype.normals = [];
 xTriangulatedShape.prototype.onloaded = function () { };
 
 /**
-* This is constructor of the xBIM Viewer. It gets HTMLCanvasElement or string ID as an argument. Viewer will than be initialized 
+* This is constructor of the xBIM Viewer. It gets HTMLCanvasElement or string ID as an argument. Viewer will than be initialized
 * in the context of specified canvas. Any other argument will throw exception.
 * @name xViewer
 * @constructor
@@ -1190,10 +1190,10 @@ function xViewer(canvas, preserveDrawingBuffer) {
     */
     /**
     * This is only a structure. Don't call the constructor.
-    * @classdesc This is a structure that holds settings of perspective camera. If you want 
+    * @classdesc This is a structure that holds settings of perspective camera. If you want
     * to switch viewer to use perspective camera set {@link xViewer#camera camera} to 'perspective'.
-    * You can modify this but it is not necessary because sensible values are 
-    * defined when geometry model is loaded with {@link xViewer#load load()} method. If you want to 
+    * You can modify this but it is not necessary because sensible values are
+    * defined when geometry model is loaded with {@link xViewer#load load()} method. If you want to
     * change these values you have to do it after geometry is loaded.
     * @class
     * @name PerspectiveCamera
@@ -1208,7 +1208,7 @@ function xViewer(canvas, preserveDrawingBuffer) {
     };
 
     /**
-    * This is a structure that holds settings of orthogonal camera. You can modify this but it is not necessary because sensible values are 
+    * This is a structure that holds settings of orthogonal camera. You can modify this but it is not necessary because sensible values are
     * defined when geometry model is loaded with {@link xViewer#load load()} method. If you want to change these values you have to do it after geometry is loaded.
     * @member {OrthogonalCamera} xViewer#orthogonalCamera
     */
@@ -1274,7 +1274,7 @@ function xViewer(canvas, preserveDrawingBuffer) {
     */
     this.renderingMode = 'normal';
 
-    /** 
+    /**
     * Clipping plane [a, b, c, d] defined as normal equation of the plane ax + by + cz + d = 0. [0,0,0,0] is for no clipping plane.
     * @member {Number[]} xViewer#clippingPlane
     */
@@ -1331,7 +1331,7 @@ function xViewer(canvas, preserveDrawingBuffer) {
     //this object is used to identify if anything changed before two frames (hence if it is necessary to redraw)
     this._lastStates = {};
     this._visualStateAttributes = ["perspectiveCamera", "orthogonalCamera", "camera", "background", "lightA", "lightB",
-        "renderingMode", "clippingPlane", "_mvMatrix", "_pMatrix", "_distance", "_origin", "highlightingColour", "_numberOfActiveModels"];
+        "renderingMode", "clippingPlane", "_mvMatrix", "_pMatrix", "_cameraDistance", "_cameraOrigin", "highlightingColour", "_numberOfActiveModels"];
     this._stylingChanged = true;
 
     //this is to indicate that user has done some interaction
@@ -1356,13 +1356,18 @@ function xViewer(canvas, preserveDrawingBuffer) {
     this._highlightingColourUniformPointer = null;
 
     //transformation matrices
-    this._mvMatrix = mat4.create(); 	//world matrix
-    this._pMatrix = mat4.create(); 		//camera matrix (this can be either perspective or orthogonal camera)
+    this._mvMatrix = mat4.create();     //world matrix
+    this._pMatrix = mat4.create();      //camera matrix (this can be either perspective or orthogonal camera)
 
     //Navigation settings - coordinates in the WCS of the origin used for orbiting and panning
-    this._origin = [0, 0, 0]
+    this._cameraOrigin = [0, 0, 0]
+
     //Default distance for default views (top, bottom, left, right, front, back)
-    this._distance = 0;
+    this._cameraDistance = 0;
+
+    this._cameraPitch = 0;
+    this._cameraYaw = 0;
+
     //shader program used for rendering
     this._shaderProgram = null;
 
@@ -1407,17 +1412,17 @@ xViewer.check = function () {
         */
         warnings: [],
         /**
-        * If this array contains any errors xViewer won't work at all or won't work as expected. 
-        * You can use messages in this array to report problems to user. However, user won't probably 
-        * be able to do to much with it except trying to use different browser. IE10- are not supported for example. 
+        * If this array contains any errors xViewer won't work at all or won't work as expected.
+        * You can use messages in this array to report problems to user. However, user won't probably
+        * be able to do to much with it except trying to use different browser. IE10- are not supported for example.
         * The latest version of IE should be all right.
         * @member {string[]}  Prerequisites#errors
         */
         errors: [],
         /**
-        * If false xViewer won't work at all or won't work as expected. 
-        * You can use messages in {@link Prerequisites#errors errors array} to report problems to user. However, user won't probably 
-        * be able to do to much with it except trying to use different browser. IE10- are not supported for example. 
+        * If false xViewer won't work at all or won't work as expected.
+        * You can use messages in {@link Prerequisites#errors errors array} to report problems to user. However, user won't probably
+        * be able to do to much with it except trying to use different browser. IE10- are not supported for example.
         * The latest version of IE should be all right.
         * @member {string[]}  Prerequisites#noErrors
         */
@@ -1438,10 +1443,10 @@ xViewer.check = function () {
         else {
             //check floating point extension availability
             var fpt = (
-	            gl.getExtension('OES_texture_float') ||
-	            gl.getExtension('MOZ_OES_texture_float') ||
-	            gl.getExtension('WEBKIT_OES_texture_float')
-	            );
+                gl.getExtension('OES_texture_float') ||
+                gl.getExtension('MOZ_OES_texture_float') ||
+                gl.getExtension('WEBKIT_OES_texture_float')
+                );
             if (!fpt) result.warnings.push('Floating point texture extension is not supported. Performance of the viewer will be very bad. But it should work.');
 
             //check number of supported vertex shader textures. Minimum is 5 but standard requires 0.
@@ -1452,11 +1457,11 @@ xViewer.check = function () {
 
     //check FileReader and Blob support
     if (!window.File || !window.FileReader ||  !window.Blob)  result.errors.push("Browser doesn't support 'File', 'FileReader' or 'Blob' objects.");
-    
+
 
     //check for typed arrays
     if (!window.Int32Array || !window.Float32Array) result.errors.push("Browser doesn't support TypedArrays. These are crucial for binary parsing and for comunication with GPU.");
-    
+
     //check SVG support
     if (!document.implementation.hasFeature("http://www.w3.org/TR/SVG11/feature#BasicStructure", "1.1")) result.warnings.push("Browser doesn't support SVG. This is used for user interaction like interactive clipping. Functions using SVG shouldn't crash but they won't work as expected.");
 
@@ -1468,7 +1473,7 @@ xViewer.check = function () {
 
 /**
 * Adds plugin to the viewer. Plugins can implement certain methods which get called in certain moments in time like
-* before draw, after draw etc. This makes it possible to implement functionality tightly integrated into xViewer like navigation cube or others. 
+* before draw, after draw etc. This makes it possible to implement functionality tightly integrated into xViewer like navigation cube or others.
 * @function xViewer#addPlugin
 * @param {object} plugin - plug-in object
 */
@@ -1481,7 +1486,7 @@ xViewer.prototype.addPlugin = function (plugin) {
 
 /**
 * Removes plugin from the viewer. Plugins can implement certain methods which get called in certain moments in time like
-* before draw, after draw etc. This makes it possible to implement functionality tightly integrated into xViewer like navigation cube or others. 
+* before draw, after draw etc. This makes it possible to implement functionality tightly integrated into xViewer like navigation cube or others.
 * @function xViewer#removePlugin
 * @param {object} plugin - plug-in object
 */
@@ -1513,10 +1518,10 @@ xViewer.prototype.defineStyle = function (index, colour) {
     }, this);
 };
 
-    
+
 
 /**
-* You can use this function to change state of products in the model. State has to have one of values from {@link xState xState} enumeration. 
+* You can use this function to change state of products in the model. State has to have one of values from {@link xState xState} enumeration.
 * Target is either enumeration from {@link xProductType xProductType} or array of product IDs. If you specify type it will effect all elements of the type.
 *
 * @function xViewer#setState
@@ -1532,7 +1537,7 @@ xViewer.prototype.setState = function (state, target) {
 };
 
 /**
-* Use this function to get state of the products in the model. You can compare result of this function 
+* Use this function to get state of the products in the model. You can compare result of this function
 * with one of values from {@link xState xState} enumeration. 0xFF is the default value.
 *
 * @function xViewer#getState
@@ -1550,11 +1555,11 @@ xViewer.prototype.getState = function (id) {
 };
 
 /**
-* Use this function to reset state of all products to 'UNDEFINED' which means visible and not highlighted. 
+* Use this function to reset state of all products to 'UNDEFINED' which means visible and not highlighted.
 * You can use optional hideSpaces parameter if you also want to show spaces. They will be hidden by default.
-* 
+*
 * @function xViewer#resetStates
-* @param {Bool} [hideSpaces = true] - Default state is UNDEFINED which would also show spaces. That is often not 
+* @param {Bool} [hideSpaces = true] - Default state is UNDEFINED which would also show spaces. That is often not
 * desired so it can be excluded with this parameter.
 */
 xViewer.prototype.resetStates = function (hideSpaces) {
@@ -1573,7 +1578,7 @@ xViewer.prototype.resetStates = function (hideSpaces) {
 
 /**
  * Gets complete model state and style. Resulting object can be used to restore the state later on.
- * 
+ *
  * @param {Number} id - Model ID which you can get from {@link xViewer#event:loaded loaded} event.
  * @returns {Array} - Array representing model state in compact form suitable for serialization
  */
@@ -1602,10 +1607,10 @@ xViewer.prototype.restoreModelState = function (id, state) {
 };
 
 /**
-* Use this method for restyling of the model. This doesn't change the default appearance of the products so you can think about it as an overlay. You can 
-* remove the overlay if you set the style to {@link xState#UNSTYLED xState.UNSTYLED} value. You can combine restyling and hiding in this way. 
-* Use {@link xViewer#defineStyle defineStyle()} to define styling first. 
-* 
+* Use this method for restyling of the model. This doesn't change the default appearance of the products so you can think about it as an overlay. You can
+* remove the overlay if you set the style to {@link xState#UNSTYLED xState.UNSTYLED} value. You can combine restyling and hiding in this way.
+* Use {@link xViewer#defineStyle defineStyle()} to define styling first.
+*
 * @function xViewer#setStyle
 * @param style - style defined in {@link xViewer#defineStyle defineStyle()} method
 * @param {Number[] | Number} target - Target of the change. It can either be array of product IDs or product type from {@link xProductType xProductType}.
@@ -1628,7 +1633,7 @@ xViewer.prototype.setStyle = function (style, target) {
 };
 
 /**
-* Use this function to get overriding colour style of the products in the model. The number you get is the index of 
+* Use this function to get overriding colour style of the products in the model. The number you get is the index of
 * your custom colour which you have defined in {@link xViewer#defineStyle defineStyle()} function. 0xFF is the default value.
 *
 * @function xViewer#getStyle
@@ -1647,7 +1652,7 @@ xViewer.prototype.getStyle = function (id) {
 /**
 * Use this function to reset appearance of all products to their default styles.
 *
-* @function xViewer#resetStyles 
+* @function xViewer#resetStyles
 */
 xViewer.prototype.resetStyles = function () {
     this._handles.forEach(function (handle) {
@@ -1657,7 +1662,7 @@ xViewer.prototype.resetStyles = function () {
 };
 
 /**
-* 
+*
 * @function xViewer#getProductType
 * @return {Number} Product type ID. This is either null if no type is identified or one of {@link xProductType type ids}.
 * @param {Number} prodID - Product ID. You can get this value either from semantic structure of the model or by listening to {@link xViewer#event:pick pick} event.
@@ -1673,13 +1678,13 @@ xViewer.prototype.getProductType = function (prodId) {
 
 /**
 * Use this method to set position of camera. Use it after {@link xViewer#setCameraTarget setCameraTarget()} to get desired result.
-* 
+*
 * @function xViewer#setCameraPosition
 * @param {Number[]} coordinates - 3D coordinates of the camera in WCS
 */
 xViewer.prototype.setCameraPosition = function (coordinates) {
     if (typeof (coordinates) == 'undefined') throw 'Parameter coordinates must be defined';
-    mat4.lookAt(this._mvMatrix, coordinates, this._origin, [0,0,1]);
+    mat4.lookAt(this._mvMatrix, coordinates, this._cameraOrigin, [0,0,1]);
 }
 
 /**
@@ -1696,7 +1701,7 @@ xViewer.prototype.setCameraTarget = function (prodId) {
     var setDistance = function (bBox) {
         var size = Math.max(bBox[3], bBox[4], bBox[5]);
         var ratio = Math.max(viewer._width, viewer._height) / Math.min(viewer._width, viewer._height);
-        viewer._distance = size / Math.tan(viewer.perspectiveCamera.fov * Math.PI / 180.0) * ratio * 1.0;
+        viewer._cameraDistance = size / Math.tan(viewer.perspectiveCamera.fov * Math.PI / 180.0) * ratio * 5;
     }
 
     //set navigation origin and default distance to the product BBox
@@ -1712,7 +1717,7 @@ xViewer.prototype.setCameraTarget = function (prodId) {
             return true;
         });
         if (bbox) {
-            this._origin = [bbox[0] + bbox[3] / 2.0, bbox[1] + bbox[4] / 2.0, bbox[2] + bbox[5] / 2.0];
+            this._cameraOrigin = [bbox[0] + bbox[3] / 2.0, bbox[1] + bbox[4] / 2.0, bbox[2] + bbox[5] / 2.0];
             setDistance(bbox);
             return true;
         }
@@ -1726,7 +1731,7 @@ xViewer.prototype.setCameraTarget = function (prodId) {
         if (handle) {
             var region = handle.region
             if (region) {
-                this._origin = [region.centre[0], region.centre[1], region.centre[2]]
+                this._cameraOrigin = [region.centre[0], region.centre[1], region.centre[2]]
                 setDistance(region.bbox);
             }
         }
@@ -1749,7 +1754,7 @@ xViewer.prototype.set = function (settings) {
 * This method is used to load model data into viewer. Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data. Any other type of argument will throw an exception.
 * Region extend is determined based on the region of the model
 * Default view if 'front'. If you want to define different view you have to set it up in handler of {@link xViewer#event:loaded loaded} event. <br>
-* You can load more than one model if they occupy the same space, use the same scale and have unique product IDs. Duplicated IDs won't affect 
+* You can load more than one model if they occupy the same space, use the same scale and have unique product IDs. Duplicated IDs won't affect
 * visualization itself but would cause unexpected user interaction (picking, zooming, ...)
 * @function xViewer#load
 * @param {String | Blob | File} model - Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data.
@@ -1772,7 +1777,7 @@ xViewer.prototype.load = function (model, tag) {
     geometry.load(model);
 };
 
-//this is a private function used to add loaded geometry as a new handle and to set up camera and 
+//this is a private function used to add loaded geometry as a new handle and to set up camera and
 //default view if this is the first geometry loaded
 xViewer.prototype._addHandle = function (geometry, tag) {
     var viewer = this;
@@ -1810,19 +1815,19 @@ xViewer.prototype._addHandle = function (geometry, tag) {
 
         //set default view
         viewer.setCameraTarget();
-        var dist = Math.sqrt(viewer._distance * viewer._distance / 3.0);
+        var dist = Math.sqrt(viewer._cameraDistance * viewer._cameraDistance / 3.0);
         viewer.setCameraPosition([region.centre[0] + dist * -1.0, region.centre[1] + dist * -1.0, region.centre[2] + dist]);
     }
 
     /**
      * Occurs when geometry model is loaded into the viewer. This event returns object containing ID of the model.
      * This ID can later be used to unload or temporarily stop the model.
-     * 
+     *
      * @event xViewer#loaded
      * @type {object}
      * @param {Number} id - model ID
      * @param {Any} tag - tag which was passed to 'xViewer.load()' function
-     * 
+     *
     */
     viewer._fire('loaded', { id: handle.id, tag: tag })
     viewer._geometryLoaded = true;
@@ -1830,7 +1835,7 @@ xViewer.prototype._addHandle = function (geometry, tag) {
 
 /**
  * Unloads model from the GPU. This action is not reversible.
- * 
+ *
  * @param {Number} modelId - ID of the model which you can get from {@link xViewer#event:loaded loaded} event.
  */
 xViewer.prototype.unload = function (modelId) {
@@ -1854,7 +1859,7 @@ xViewer.prototype.unload = function (modelId) {
 //this function should be only called once during initialization
 //or when shader set-up changes
 xViewer.prototype._initShaders = function () {
-        
+
     var gl = this._gl;
     var viewer = this;
     var compile = function (shader, code) {
@@ -1869,7 +1874,7 @@ xViewer.prototype._initShaders = function () {
     //fragment shader
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     compile(fragmentShader, xShaders.fragment_shader);
-    
+
     //vertex shader (the more complicated one)
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     if (this._fpt != null) compile(vertexShader, xShaders.vertex_shader);
@@ -1921,6 +1926,22 @@ xViewer.prototype._initAttributesAndUniforms = function () {
     gl.enableVertexAttribArray(this._pointers.styleAttrPointer);
     gl.enableVertexAttribArray(this._pointers.transformationAttrPointer);
 };
+
+xViewer.prototype._updateCamera = function() {
+    var origin = this._cameraOrigin;
+    var yaw = this._cameraYaw;
+    var pitch = this._cameraPitch;
+    var distance = this._cameraDistance
+
+    const eye = vec3.create()
+    eye[0] = origin[0] + distance * Math.cos(yaw) * Math.sin(pitch),
+    eye[1] = origin[1] + distance * Math.sin(yaw) * Math.sin(pitch)
+    eye[2] = origin[2] + distance * Math.cos(pitch),
+
+    console.log(eye)
+
+    mat4.lookAt(this._mvMatrix, eye, origin, [0, 0, 1]);
+}
 
 xViewer.prototype._initMouseEvents = function () {
     var viewer = this;
@@ -2086,18 +2107,10 @@ xViewer.prototype._initMouseEvents = function () {
     function navigate(type, deltaX, deltaY) {
         if(!viewer._handles || !viewer._handles[0]) return;
         //translation in WCS is position from [0, 0, 0]
-        var origin = viewer._origin;
+        var origin = viewer._cameraOrigin;
+        var distance = viewer._cameraDistance;
+
         var camera = viewer.getCameraPosition();
-
-        //get origin coordinates in view space
-        var mvOrigin = vec3.transformMat4(vec3.create(), origin, viewer._mvMatrix)
-
-        //movement factor needs to be dependant on the distance but one meter is a minimum so that movement wouldn't stop when camera is in 0 distance from navigation origin
-        var distanceVec = vec3.subtract(vec3.create(), origin, camera);
-        var distance = Math.max(vec3.length(distanceVec), viewer._handles[0]._model.meter);
-
-        //move to the navigation origin in view space
-        var transform = mat4.translate(mat4.create(), mat4.create(), mvOrigin)
 
         //function for conversion from degrees to radians
         function degToRad(deg) {
@@ -2106,41 +2119,42 @@ xViewer.prototype._initMouseEvents = function () {
 
         switch (type) {
             case 'free-orbit':
-                transform = mat4.rotate(mat4.create(), transform, degToRad(deltaY / 4), [1, 0, 0]);
-                transform = mat4.rotate(mat4.create(), transform, degToRad(deltaX / 4), [0, 1, 0]);
+                // transform = mat4.rotate(mat4.create(), transform, degToRad(deltaY / 4), [1, 0, 0]);
+                // transform = mat4.rotate(mat4.create(), transform, degToRad(deltaX / 4), [0, 1, 0]);
                 break;
 
             case 'fixed-orbit':
             case 'orbit':
-                mat4.rotate(transform, transform, degToRad(deltaY / 4), [1, 0, 0]);
+                viewer._cameraYaw -= degToRad(deltaX / 4);
+                viewer._cameraPitch -= degToRad(deltaY / 4);
 
-                //z rotation around model z axis
-                var mvZ = vec3.transformMat3(vec3.create(), [0, 0, 1], mat3.fromMat4(mat3.create(), viewer._mvMatrix));
-                mvZ = vec3.normalize(vec3.create(), mvZ);
-                transform = mat4.rotate(mat4.create(), transform, degToRad(deltaX / 4), mvZ);
+                if ((viewer._cameraPitch % Math.PI) < 0.01) {
+                    viewer._cameraPitch = 0.01;
+                }
+                if ((viewer._cameraPitch % Math.PI) > (Math.PI * 0.49)) {
+                    viewer._cameraPitch = Math.PI * 0.49;
+                }
 
                 break;
-
             case 'pan':
-                mat4.translate(transform, transform, [deltaX * distance / 150, 0, 0]);
-                mat4.translate(transform, transform, [0, (-1.0 * deltaY) * distance / 150, 0]);
                 break;
 
             case 'zoom':
-                mat4.translate(transform, transform, [0, 0, deltaX * distance / 20]);
-                mat4.translate(transform, transform, [0, 0, deltaY * distance / 20]);
+                viewer._cameraDistance -= deltaY * distance / 20
+                console.log(viewer._cameraDistance)
+                if (viewer._cameraDistance < 10000) {
+                    viewer._cameraDistance = 10000
+                }
+                if (viewer._cameraDistance > 100000) {
+                    viewer._cameraDistance = 100000
+                }
                 break;
 
             default:
                 break;
         }
 
-        //reverse the translation in view space and leave only navigation changes
-        var translation = vec3.negate(vec3.create(), mvOrigin);
-        transform = mat4.translate(mat4.create(), transform, translation);
-
-        //apply transformation in right order
-        viewer._mvMatrix = mat4.multiply(mat4.create(), transform, viewer._mvMatrix);
+        viewer._updateCamera()
     }
 
     //watch resizing of canvas every 500ms
@@ -2237,9 +2251,9 @@ xViewer.prototype.draw = function () {
         this._highlightingColourUniformPointer,
         new Float32Array(
             [
-                this.highlightingColour[0] / 255.0, 
-                this.highlightingColour[1] / 255.0, 
-                this.highlightingColour[2] / 255.0, 
+                this.highlightingColour[0] / 255.0,
+                this.highlightingColour[1] / 255.0,
+                this.highlightingColour[2] / 255.0,
                 this.highlightingColour[3]
             ]
         )
@@ -2289,7 +2303,7 @@ xViewer.prototype.draw = function () {
             }
         }, this);
     }
-    
+
     //call all after-draw plugins
     this._plugins.forEach(function (plugin) {
         if (!plugin.onAfterDraw) {
@@ -2301,7 +2315,7 @@ xViewer.prototype.draw = function () {
     /**
      * Occurs after every frame in animation. Don't do anything heavy weighted in here as it will happen about 60 times in a second all the time.
      *
-     * @event xViewer#frame 
+     * @event xViewer#frame
      * @type {object}
      */
     this._fire('frame', {});
@@ -2343,16 +2357,11 @@ xViewer.prototype.zoomTo = function (id) {
     var found = this.setCameraTarget(id);
     if (!found)  return false;
 
-    var eye = this.getCameraPosition();
-    var dir = vec3.create();
-    vec3.subtract(dir, eye, this._origin);
-    dir = vec3.normalize(vec3.create(), dir);
+    viewer._cameraPitch = 0.45 * Math.PI;
+    viewer._cameraYaw = Math.PI;
 
-    var translation = vec3.create();
-    vec3.scale(translation, dir, this._distance);
-    vec3.add(eye, translation, this._origin);
+    viewer._updateCamera()
 
-    mat4.lookAt(this._mvMatrix, eye, this._origin, [0, 0, 1]);
     return true;
 };
 
@@ -2360,13 +2369,13 @@ xViewer.prototype.zoomTo = function (id) {
 * Use this function to show default views.
 *
 * @function xViewer#show
-* @param {String} type - Type of view. Allowed values are <strong>'top', 'bottom', 'front', 'back', 'left', 'right'</strong>. 
+* @param {String} type - Type of view. Allowed values are <strong>'top', 'bottom', 'front', 'back', 'left', 'right'</strong>.
 * Directions of this views are defined by the coordinate system. Target and distance are defined by {@link xViewer#setCameraTarget setCameraTarget()} method to certain product ID
 * or to the model extent if {@link xViewer#setCameraTarget setCameraTarget()} is called with no arguments.
 */
 xViewer.prototype.show = function (type) {
-    var origin = this._origin;
-    var distance = this._distance;
+    var origin = this._cameraOrigin;
+    var distance = this._cameraDistance;
     var camera = [0, 0, 0];
     var heading = [0, 0, 1];
     switch (type) {
@@ -2425,7 +2434,7 @@ xViewer.prototype._getID = function (x, y) {
         plugin.onBeforeDrawId();
     }, this);
 
-    //it is not necessary to render the image in full resolution so this factor is used for less resolution. 
+    //it is not necessary to render the image in full resolution so this factor is used for less resolution.
     var factor = 2;
     var gl = this._gl;
     var width = this._width / factor;
@@ -2447,7 +2456,7 @@ xViewer.prototype._getID = function (x, y) {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    // Set the parameters so we can render any image size.        
+    // Set the parameters so we can render any image size.
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -2562,7 +2571,7 @@ xViewer.prototype.start = function (id) {
             /**
             * Occurs after every 30th frame in animation. Use this event if you want to report FPS to the user. It might also be interesting performance measure.
             *
-            * @event xViewer#fps 
+            * @event xViewer#fps
             * @type {Number}
             */
             viewer._fire('fps', Math.floor(fps) );
@@ -2577,7 +2586,7 @@ xViewer.prototype.start = function (id) {
 };
 
 /**
-* Use this function to stop animation of the model. User will still be able to see the latest state of the model. You can 
+* Use this function to stop animation of the model. User will still be able to see the latest state of the model. You can
 * switch animation of the model on again by calling {@link xViewer#start start()}.
 *
 * @function xViewer#stop
@@ -2598,7 +2607,7 @@ xViewer.prototype.stop = function (id) {
 };
 
 /**
- * Use this method to register to events of the viewer like {@link xViewer#event:pick pick}, {@link xViewer#event:mouseDown mouseDown}, 
+ * Use this method to register to events of the viewer like {@link xViewer#event:pick pick}, {@link xViewer#event:mouseDown mouseDown},
  * {@link xViewer#event:loaded loaded} and others. You can define arbitrary number
  * of event handlers for any event. You can remove handler by calling {@link xViewer#off off()} method.
  *
@@ -2742,7 +2751,7 @@ xViewer.prototype.getClip = function () {
 /**
 * Use this method to clip the model. If you call the function with no arguments interactive clipping will start. This is based on SVG overlay
 * so SVG support is necessary for it. But as WebGL is more advanced technology than SVG it is sound assumption that it is present in the browser.
-* Use {@link xViewer.check xViewer.check()} to make sure it is supported at the very beginning of using of xViewer. Use {@link xViewer#unclip unclip()} method to 
+* Use {@link xViewer.check xViewer.check()} to make sure it is supported at the very beginning of using of xViewer. Use {@link xViewer#unclip unclip()} method to
 * unset clipping plane.
 *
 * @function xViewer#clip
@@ -2810,7 +2819,7 @@ xViewer.prototype.clip = function (point, normal) {
     var handleMouseUp = function (event) {
         if (!down) return;
 
-        //check if the points are not identical. 
+        //check if the points are not identical.
         var r = svg.getBoundingClientRect();
         if (position.x == event.clientX - r.left && position.y == event.clientY - r.top) {
             return;
@@ -2852,7 +2861,7 @@ xViewer.prototype.clip = function (point, normal) {
         var BA = vec3.subtract(vec3.create(), A, B);
         var BC = vec3.subtract(vec3.create(), C, B);
         var N = vec3.cross(vec3.create(), BA, BC);
-        
+
         viewer.clip(B, N);
 
         //clean
@@ -2899,14 +2908,14 @@ xViewer.prototype.clip = function (point, normal) {
 
 /**
 * This method is only active when interactive clipping is active. It stops interactive clipping operation.
-* 
+*
 * @function xViewer#stopClipping
 */
 //this is only a placeholder. It is actually created only when interactive clipping is active.
 xViewer.prototype.stopClipping = function() {};
 
 /**
-* This method will cancel any clipping plane if it is defined. Use {@link xViewer#clip clip()} 
+* This method will cancel any clipping plane if it is defined. Use {@link xViewer#clip clip()}
 * method to define clipping by point and normal of the plane or interactively if you call it with no arguments.
 * @function xViewer#unclip
 * @fires xViewer#unclipped
