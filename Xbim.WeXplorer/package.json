@@ -1,6 +1,6 @@
 {
   "name": "@habx/xbim-viewer",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "HABX version of xBim Web UI Viewer",
   "main": "index.js",
   "scripts": {

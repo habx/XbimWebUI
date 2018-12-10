@@ -1365,6 +1365,12 @@ function xViewer(canvas, preserveDrawingBuffer) {
     //Default distance for default views (top, bottom, left, right, front, back)
     this._cameraDistance = 0;
 
+    this.cameraMaxDistance = 10
+    this.cameraMinDistance = 100
+
+    this.cameraMinPitch = 0.01
+    this.cameraMaxPitch = Math.PI * 0.49
+
     this._cameraPitch = 0;
     this._cameraYaw = 0;
 
@@ -2128,11 +2134,11 @@ xViewer.prototype._initMouseEvents = function () {
                 viewer._cameraYaw -= degToRad(deltaX / 4);
                 viewer._cameraPitch -= degToRad(deltaY / 4);
 
-                if ((viewer._cameraPitch % Math.PI) < 0.01) {
-                    viewer._cameraPitch = 0.01;
+                if ((viewer._cameraPitch % Math.PI) < viewer.cameraMinPitch) {
+                    viewer._cameraPitch = viewer.cameraMinPitch;
                 }
-                if ((viewer._cameraPitch % Math.PI) > (Math.PI * 0.49)) {
-                    viewer._cameraPitch = Math.PI * 0.49;
+                if ((viewer._cameraPitch % Math.PI) > viewer.cameraMaxPitch) {
+                    viewer._cameraPitch = viewer.cameraMaxPitch;
                 }
 
                 break;
@@ -2140,13 +2146,22 @@ xViewer.prototype._initMouseEvents = function () {
                 break;
 
             case 'zoom':
+                var meter = 1;
+
+                viewer._handles.forEach(function (handle) {
+                    meter = handle._model.meter
+                }, this);
+
+                var maxDistance = meter * viewer.maxDistance
+                var minDistance = meter * viewer.minDistance
+
                 viewer._cameraDistance -= deltaY * distance / 20
                 console.log(viewer._cameraDistance)
-                if (viewer._cameraDistance < 10000) {
-                    viewer._cameraDistance = 10000
+                if (viewer._cameraDistance < minDistance) {
+                    viewer._cameraDistance = minDistance
                 }
-                if (viewer._cameraDistance > 100000) {
-                    viewer._cameraDistance = 100000
+                if (viewer._cameraDistance > maxDistance) {
+                    viewer._cameraDistance = maxDistance
                 }
                 break;
 
@@ -2357,10 +2372,10 @@ xViewer.prototype.zoomTo = function (id) {
     var found = this.setCameraTarget(id);
     if (!found)  return false;
 
-    viewer._cameraPitch = 0.45 * Math.PI;
-    viewer._cameraYaw = Math.PI;
+    this._cameraPitch = 0.45 * Math.PI;
+    this._cameraYaw = Math.PI;
 
-    viewer._updateCamera()
+    this._updateCamera()
 
     return true;
 };
