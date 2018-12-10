@@ -11,6 +11,10 @@ type Libs\gl-matrix.min.js >> Build\xbim-viewer.debug.bundle.js
 copy /y Libs\webgl-utils.min.js Build\webgl-utils.min.js
 copy /y Libs\gl-matrix.min.js Build\gl-matrix.min.js
 
+rem Create a version usable with npm
+type Build\xbim-viewer.debug.bundle.js > Build\xbim-viewer.module.js
+type Viewer\npmify.js >> Build\xbim-viewer.module.js
+
 rem Create minified version of JS where all viewer JS files are minified and put in one file
 type Resources\xbim-disclaimer.txt > Build\xbim-viewer.min.js
 type Viewer\*.debug.js | Utilities\jsmin.exe >> Build\xbim-viewer.min.js
@@ -36,6 +40,8 @@ type Plugins\NavigationCube\*.debug.js >> Build\xbim-navigation-cube.js
 type Resources\xbim-disclaimer.txt > Build\xbim-navigation-cube.min.js
 type Plugins\NavigationCube\*.debug.js | Utilities\jsmin.exe >> Build\xbim-navigation-cube.min.js
 xcopy /y Build\xbim-navigation-cube.js Resources\doctemplate\static\scripts
+type Build\xbim-navigation-cube.js > Build\xbim-navigation-cube.module.js
+type Plugins\NavigationCube\npmify.js >> Build\xbim-navigation-cube.module.js
 
 rem Create build files for the home navigation plugin
 type Resources\xbim-disclaimer.txt > Build\xbim-navigation-home.js
@@ -43,13 +49,17 @@ type Plugins\NavigationHome\*.debug.js >> Build\xbim-navigation-home.js
 type Resources\xbim-disclaimer.txt > Build\xbim-navigation-home.min.js
 type Plugins\NavigationHome\*.debug.js | Utilities\jsmin.exe >> Build\xbim-navigation-home.min.js
 xcopy /y Build\xbim-navigation-home.js Resources\doctemplate\static\scripts
+type Build\xbim-navigation-home.js > Build\xbim-navigation-home.module.js
+type Plugins\NavigationHome\npmify.js >> Build\xbim-navigation-home.module.js
 
-rem Create build files for the cube navigation plugin
+rem Create build files for the pulse highlight plugin
 type Resources\xbim-disclaimer.txt > Build\xbim-pulse-highlight.js
 type Plugins\PulseHighlight\*.debug.js >> Build\xbim-pulse-highlight.js
 type Resources\xbim-disclaimer.txt > Build\xbim-pulse-highlight.min.js
 type Plugins\PulseHighlight\*.debug.js | Utilities\jsmin.exe >> Build\xbim-pulse-highlight.min.js
 xcopy /y Build\xbim-pulse-highlight.js Resources\doctemplate\static\scripts
+type Build\xbim-pulse-highlight.js > Build\xbim-pulse-highlight.module.js
+type Plugins\PulseHighlight\npmify.js >> Build\xbim-pulse-highlight.module.js
 
 rem Create build file for the loader
 type Resources\xbim-disclaimer.txt > Build\xbim-loader.debug.js

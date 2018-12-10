@@ -1,0 +1,19 @@
+{
+  "name": "@habx/xbim-viewer",
+  "version": "1.0.0",
+  "description": "HABX version of xBim Web UI Viewer",
+  "main": "index.js",
+  "scripts": {
+    "build": "build.bat"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/habx/XbimWebUI.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/habx/XbimWebUI/issues"
+  },
+  "homepage": "https://github.com/habx/XbimWebUI#readme"
+}

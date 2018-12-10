@@ -1,0 +1,15 @@
+bin
+Browser
+Libs
+obj
+Plugins
+Properties
+Ressources
+tests
+Tutorials
+Utilities
+Viewer
+*.bat
+*.html
+*.config
+*.csproj
