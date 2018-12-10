@@ -1,2 +1,6 @@
 
-module.exports = xViewer
+module.exports = {
+  xViewer: xViewer,
+  xState: xState,
+  xProductType: xProductType,
+}
