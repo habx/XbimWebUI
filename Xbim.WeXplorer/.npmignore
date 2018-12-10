@@ -4,7 +4,7 @@ Libs
 obj
 Plugins
 Properties
-Ressources
+Resources
 tests
 Tutorials
 Utilities
@@ -13,3 +13,6 @@ Viewer
 *.html
 *.config
 *.csproj
+*.csproj.user
+conf.json
+browser.js
