@@ -167,8 +167,11 @@ function xViewer(canvas, preserveDrawingBuffer) {
 
     //cache canvas width and height and change it only when size change
     // it is better to cache this value because it is used frequently and it takes a time to get a value from HTML
-    this._width = this._canvas.width = this._canvas.offsetWidth;
-    this._height = this._canvas.height = this._canvas.offsetHeight;
+    this._renderWidth = this._canvas.width || this._canvas.offsetWidth;
+    this._renderHeight = this._canvas.height || this._canvas.offsetHeight;
+
+    this._width = this._canvas.offsetWidth;
+    this._height = this._canvas.offsetHeight;
 
     this._geometryLoaded = false;
     //number of active models is used to indicate that state has changed
@@ -682,8 +685,8 @@ xViewer.prototype._addHandle = function (geometry, tag) {
         var ratio = 1.8;
         viewer.orthogonalCamera.top = maxSize / ratio;
         viewer.orthogonalCamera.bottom = maxSize / ratio * -1;
-        viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._width / viewer._height;
-        viewer.orthogonalCamera.right = maxSize / ratio * viewer._width / viewer._height;
+        viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._renderWidth / viewer._renderHeight;
+        viewer.orthogonalCamera.right = maxSize / ratio * viewer._renderWidth / viewer._renderHeight;
 
         //set default view
         viewer.setCameraTarget();
@@ -827,10 +830,10 @@ xViewer.prototype._initMouseEvents = function () {
     //set initial conditions so that different gestures can be identified
     function handleMouseDown(event) {
         mouseDown = true;
-        lastMouseX = event.clientX;
-        lastMouseY = event.clientY;
-        startX = event.clientX;
-        startY = event.clientY;
+        lastMouseX = (event.clientX || event.changedTouches[0].clientX);
+        lastMouseY = (event.clientY || event.changedTouches[0].clientY);
+        startX = (event.clientX || event.changedTouches[0].clientX);
+        startY = (event.clientY || event.changedTouches[0].clientY);
 
         //get coordinates within canvas (with the right orientation)
         var r = viewer._canvas.getBoundingClientRect();
@@ -875,8 +878,8 @@ xViewer.prototype._initMouseEvents = function () {
     function handleMouseUp(event) {
         mouseDown = false;
 
-        var endX = event.clientX;
-        var endY = event.clientY;
+        var endX = (event.clientX || event.changedTouches[0].clientX);
+        var endY = (event.clientY || event.changedTouches[0].clientY);
 
         var deltaX = Math.abs(endX - startX);
         var deltaY = Math.abs(endY - startY);
@@ -914,8 +917,8 @@ xViewer.prototype._initMouseEvents = function () {
             return;
         }
 
-        var newX = event.clientX;
-        var newY = event.clientY;
+        var newX = (event.clientX || event.changedTouches[0].clientX);
+        var newY = (event.clientY || event.changedTouches[0].clientY);
 
         var deltaX = newX - lastMouseX;
         var deltaY = newY - lastMouseY;
@@ -1029,22 +1032,31 @@ xViewer.prototype._initMouseEvents = function () {
         viewer._updateCamera()
     }
 
-    //watch resizing of canvas every 500ms
-    var elementHeight = viewer.height;
-    var elementWidth = viewer.width;
     setInterval(function () {
-        if (viewer._canvas.offsetHeight !== elementHeight || viewer._canvas.offsetWidth !== elementWidth) {
-            elementHeight = viewer._height = viewer._canvas.height = viewer._canvas.offsetHeight;
-            elementWidth = viewer._width = viewer._canvas.width = viewer._canvas.offsetWidth;
+        var newRenderHeight = viewer._canvas.height || viewer._canvas.offsetHeight
+        var newRenderWidth = viewer._canvas.width || viewer._canvas.offsetWidth
+        var newHeight = viewer._canvas.offsetHeight
+        var newWidth = viewer._canvas.offsetWidth
+        if (
+            newRenderHeight != viewer._renderHeight || newRenderWidth != viewer._renderWidth ||
+            newHeight != viewer._height || newWidth != viewer._width
+        ) {
+            viewer._renderHeight = newRenderHeight;
+            viewer._renderWidth = newRenderWidth;
+            viewer._height = newHeight;
+            viewer._width = newWidth;
         }
-    }, 500);
+    }, 200);
 
 
     //attach callbacks
     this._canvas.addEventListener('mousedown', handleMouseDown, true);
+    this._canvas.addEventListener('touchstart', handleMouseDown, true);
     this._canvas.addEventListener('wheel', handleMouseScroll, true);
     window.addEventListener('mouseup', handleMouseUp, true);
+    window.addEventListener('touchend', handleMouseUp, true);
     window.addEventListener('mousemove', handleMouseMove, true);
+    window.addEventListener('touchmove', handleMouseMove, true);
 
     this._canvas.addEventListener('mousemove', function() {
         viewer._userAction = true;
@@ -1085,8 +1097,8 @@ xViewer.prototype.draw = function () {
     this._stylingChanged = false;
 
     var gl = this._gl;
-    var width = this._width;
-    var height = this._height;
+    var width = this._renderWidth;
+    var height = this._renderHeight;
 
     gl.useProgram(this._shaderProgram);
     gl.viewport(0, 0, width, height);
@@ -1096,7 +1108,7 @@ xViewer.prototype.draw = function () {
     //set up camera
     switch (this.camera) {
         case 'perspective':
-            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, this._width / this._height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, width / height, this.perspectiveCamera.near, this.perspectiveCamera.far);
             break;
 
         case 'orthogonal':
@@ -1104,7 +1116,7 @@ xViewer.prototype.draw = function () {
             break;
 
         default:
-            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, this._width / this._height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, width / height, this.perspectiveCamera.near, this.perspectiveCamera.far);
             break;
     }
 
@@ -1230,7 +1242,7 @@ xViewer.prototype.zoomTo = function (id) {
     if (!found)  return false;
 
     this._cameraPitch = 0.45 * Math.PI;
-    this._cameraYaw = Math.PI;
+    // this._cameraYaw = Math.PI;
 
     this._updateCamera()
 
@@ -1309,10 +1321,10 @@ xViewer.prototype._getID = function (x, y) {
     //it is not necessary to render the image in full resolution so this factor is used for less resolution.
     var factor = 2;
     var gl = this._gl;
-    var width = this._width / factor;
-    var height = this._height / factor;
-    x = x / factor;
-    y = y / factor;
+    var width = this._renderWidth / factor;
+    var height = this._renderHeight / factor;
+    x = (x / factor) * (this._renderWidth / this._width );
+    y = (y / factor) * (this._renderHeight / this._height);
 
     //create framebuffer
     var frameBuffer = gl.createFramebuffer();
@@ -1669,8 +1681,8 @@ xViewer.prototype.clip = function (point, normal) {
         viewer._disableTextSelection();
 
         var r = svg.getBoundingClientRect();
-        position.x = event.clientX - r.left;
-        position.y = event.clientY - r.top;
+        position.x = (event.clientX || event.changedTouches[0].clientX) - r.left;
+        position.y = (event.clientY || event.changedTouches[0].clientY) - r.top;
         position.angle = 0.0;
 
         //create very long vertical line going through the point
@@ -1693,7 +1705,7 @@ xViewer.prototype.clip = function (point, normal) {
 
         //check if the points are not identical.
         var r = svg.getBoundingClientRect();
-        if (position.x == event.clientX - r.left && position.y == event.clientY - r.top) {
+        if (position.x == (event.clientX || event.changedTouches[0].clientX) - r.left && position.y == (event.clientY || event.changedTouches[0].clientY) - r.top) {
             return;
         }
 
@@ -1747,8 +1759,8 @@ xViewer.prototype.clip = function (point, normal) {
         if (!down) return;
 
         var r = svg.getBoundingClientRect();
-        var x = event.clientX - r.left;
-        var y = event.clientY - r.top;
+        var x = (event.clientX || event.changedTouches[0].clientX) - r.left;
+        var y = (event.clientY || event.changedTouches[0].clientY) - r.top;
 
         //rotate
         var dX = x - position.x;
