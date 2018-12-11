@@ -810,8 +810,6 @@ xViewer.prototype._updateCamera = function() {
     eye[1] = origin[1] + distance * Math.sin(yaw) * Math.sin(pitch)
     eye[2] = origin[2] + distance * Math.cos(pitch),
 
-    console.log(eye)
-
     mat4.lookAt(this._mvMatrix, eye, origin, [0, 0, 1]);
 }
 
