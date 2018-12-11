@@ -1371,8 +1371,8 @@ function xViewer(canvas, preserveDrawingBuffer) {
     this.cameraMaxDistance = 100
     this.cameraMinDistance = 10
 
-    this.cameraMinPitch = 0.01
-    this.cameraMaxPitch = Math.PI * 0.49
+    this.cameraMinPitch = 0
+    this.cameraMaxPitch = Math.PI / 2
 
     this._cameraPitch = 0;
     this._cameraYaw = 0;
@@ -1397,6 +1397,8 @@ function xViewer(canvas, preserveDrawingBuffer) {
     this._initAttributesAndUniforms();
     //initialize mouse events to capture user interaction
     this._initMouseEvents();
+
+    this._updateCamera()
 };
 
 /**
@@ -1960,7 +1962,7 @@ xViewer.prototype._initAttributesAndUniforms = function () {
 xViewer.prototype._updateCamera = function() {
     var origin = this._cameraOrigin;
     var yaw = this._cameraYaw;
-    var pitch = this._cameraPitch;
+    var pitch = -this._cameraPitch + Math.PI / 2;
     var distance = this._cameraDistance
 
     const eye = vec3.create()
@@ -2154,7 +2156,7 @@ xViewer.prototype._initMouseEvents = function () {
             case 'fixed-orbit':
             case 'orbit':
                 viewer._cameraYaw -= degToRad(deltaX / 4);
-                viewer._cameraPitch -= degToRad(deltaY / 4);
+                viewer._cameraPitch += degToRad(deltaY / 4);
 
                 if ((viewer._cameraPitch % Math.PI) < viewer.cameraMinPitch) {
                     viewer._cameraPitch = viewer.cameraMinPitch;
@@ -2206,14 +2208,19 @@ xViewer.prototype._initMouseEvents = function () {
 
     //attach callbacks
     this._canvas.addEventListener('mousedown', handleMouseDown, true);
-    this._canvas.addEventListener('touchstart', handleMouseDown, true);
     this._canvas.addEventListener('wheel', handleMouseScroll, true);
     window.addEventListener('mouseup', handleMouseUp, true);
-    window.addEventListener('touchend', handleMouseUp, true);
     window.addEventListener('mousemove', handleMouseMove, true);
+
+    this._canvas.addEventListener('touchstart', handleMouseDown, true);
+    window.addEventListener('touchend', handleMouseUp, true);
     window.addEventListener('touchmove', handleMouseMove, true);
 
     this._canvas.addEventListener('mousemove', function() {
+        viewer._userAction = true;
+    }, true);
+
+    this._canvas.addEventListener('touchmove', function() {
         viewer._userAction = true;
     }, true);
 
@@ -2254,6 +2261,7 @@ xViewer.prototype.draw = function () {
     var gl = this._gl;
     var width = this._renderWidth;
     var height = this._renderHeight;
+    var ratio = this._width / this._height
 
     gl.useProgram(this._shaderProgram);
     gl.viewport(0, 0, width, height);
@@ -2263,7 +2271,7 @@ xViewer.prototype.draw = function () {
     //set up camera
     switch (this.camera) {
         case 'perspective':
-            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, width / height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, ratio, this.perspectiveCamera.near, this.perspectiveCamera.far);
             break;
 
         case 'orthogonal':
@@ -2271,7 +2279,7 @@ xViewer.prototype.draw = function () {
             break;
 
         default:
-            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, width / height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+            mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, ratio, this.perspectiveCamera.near, this.perspectiveCamera.far);
             break;
     }
 
@@ -2396,7 +2404,7 @@ xViewer.prototype.zoomTo = function (id) {
     var found = this.setCameraTarget(id);
     if (!found)  return false;
 
-    this._cameraPitch = 0.45 * Math.PI;
+    this._cameraPitch = 0;
     // this._cameraYaw = Math.PI;
 
     this._updateCamera()
@@ -2908,6 +2916,10 @@ xViewer.prototype.clip = function (point, normal) {
         svg.removeEventListener('mousedown', handleMouseDown, true);
         window.removeEventListener('mouseup', handleMouseUp, true);
         window.removeEventListener('mousemove', handleMouseMove, true);
+
+        svg.removeEventListener('touchstart', handleMouseDown, true);
+        window.removeEventListener('touchend', handleMouseUp, true);
+        window.removeEventListener('touchmove', handleMouseMove, true);
     };
 
     var handleMouseMove = function (event) {
@@ -2935,11 +2947,19 @@ xViewer.prototype.clip = function (point, normal) {
     window.addEventListener('mouseup', handleMouseUp, true);
     window.addEventListener('mousemove', handleMouseMove, true);
 
+    svg.addEventListener('touchstart', handleMouseDown, true);
+    window.addEventListener('touchend', handleMouseUp, true);
+    window.addEventListener('touchmove', handleMouseMove, true);
+
     this.stopClipping = function() {
         svg.parentNode.removeChild(svg);
         svg.removeEventListener('mousedown', handleMouseDown, true);
         window.removeEventListener('mouseup', handleMouseUp, true);
         window.removeEventListener('mousemove', handleMouseMove, true);
+
+        svg.removeEventListener('touchstart', handleMouseDown, true);
+        window.removeEventListener('touchend', handleMouseUp, true);
+        window.removeEventListener('touchmove', handleMouseMove, true);
         //clear also itself
         viewer.stopClipping = function() {};
     };
