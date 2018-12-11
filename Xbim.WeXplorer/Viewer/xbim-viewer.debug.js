@@ -210,8 +210,8 @@ function xViewer(canvas, preserveDrawingBuffer) {
     //Default distance for default views (top, bottom, left, right, front, back)
     this._cameraDistance = 0;
 
-    this.cameraMaxDistance = 10
-    this.cameraMinDistance = 100
+    this.cameraMaxDistance = 100
+    this.cameraMinDistance = 10
 
     this.cameraMinPitch = 0.01
     this.cameraMaxPitch = Math.PI * 0.49
@@ -538,6 +538,27 @@ xViewer.prototype.setCameraPosition = function (coordinates) {
     mat4.lookAt(this._mvMatrix, coordinates, this._cameraOrigin, [0,0,1]);
 }
 
+xViewer.prototype._setCameraDistance = function(distance) {
+    var viewer = this
+    var meter = 1;
+
+    viewer._handles.forEach(function (handle) {
+        meter = handle._model.meter
+    }, viewer);
+
+    viewer._cameraDistance = distance
+
+    var maxDistance = meter * viewer.cameraMaxDistance
+    var minDistance = meter * viewer.cameraMinDistance
+
+    if (viewer._cameraDistance < minDistance) {
+        viewer._cameraDistance = minDistance;
+    }
+    if (viewer._cameraDistance > maxDistance) {
+        viewer._cameraDistance = maxDistance;
+    }
+}
+
 /**
 * This method sets navigation origin to the centroid of specified product's bounding box or to the centre of model if no product ID is specified.
 * This method doesn't affect the view itself but it has an impact on navigation. Navigation origin is used as a centre for orbiting and it is used
@@ -552,7 +573,7 @@ xViewer.prototype.setCameraTarget = function (prodId) {
     var setDistance = function (bBox) {
         var size = Math.max(bBox[3], bBox[4], bBox[5]);
         var ratio = Math.max(viewer._width, viewer._height) / Math.min(viewer._width, viewer._height);
-        viewer._cameraDistance = size / Math.tan(viewer.perspectiveCamera.fov * Math.PI / 180.0) * ratio * 5;
+        viewer._setCameraDistance(size / Math.tan(viewer.perspectiveCamera.fov * Math.PI / 180.0) * ratio * 5);
     }
 
     //set navigation origin and default distance to the product BBox
@@ -703,7 +724,7 @@ xViewer.prototype.unload = function (modelId) {
 
     //unload and delete
     handle.unload();
-    delete handle;
+    // delete handle;
 };
 
 
@@ -1000,14 +1021,7 @@ xViewer.prototype._initMouseEvents = function () {
                 var maxDistance = meter * viewer.maxDistance
                 var minDistance = meter * viewer.minDistance
 
-                viewer._cameraDistance -= deltaY * distance / 20
-                console.log(viewer._cameraDistance)
-                if (viewer._cameraDistance < minDistance) {
-                    viewer._cameraDistance = minDistance
-                }
-                if (viewer._cameraDistance > maxDistance) {
-                    viewer._cameraDistance = maxDistance
-                }
+                viewer._setCameraDistance(viewer._cameraDistance - (deltaY * distance / 20))
                 break;
 
             default:
