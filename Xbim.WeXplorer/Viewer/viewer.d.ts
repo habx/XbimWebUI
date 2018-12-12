@@ -1,5 +1,6 @@
 import { State } from './state';
 import { ProductType } from './product-type';
+import { ModelHandle } from './model-handle';
 export { quat } from "./matrix/quat";
 export { State } from './state';
 export { ProductType } from './product-type';
@@ -7,6 +8,7 @@ export { ProductInheritance } from './product-inheritance';
 export { NavigationCube } from "./plugins/NavigationCube/navigation-cube";
 export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
+export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
 export { ViewerSession } from './transactions/viewer-session';
 export declare class Viewer {
     /**
@@ -49,7 +51,7 @@ export declare class Viewer {
     private _geometryLoaded;
     private _plugins;
     private _stylingChanged;
-    private _handles;
+    _handles: ModelHandle[];
     highlightingColour: number[];
     navigationMode: 'pan' | 'zoom' | 'orbit' | 'fixed-orbit' | 'free-orbit' | 'none';
     private _userAction;
@@ -75,15 +77,15 @@ export declare class Viewer {
     private _lastStates;
     private _visualStateAttributes;
     renderingMode: RenderingMode;
-    private _clippingPlaneA;
-    private _clippingA;
-    private _clippingPlaneB;
-    private _clippingB;
+    _clippingPlaneA: number[];
+    _clippingA: boolean;
+    _clippingPlaneB: number[];
+    _clippingB: boolean;
     private _lastClippingPoint;
     gl: WebGLRenderingContext;
     mvMatrix: Float32Array;
     private _fpt;
-    private _pMatrix;
+    _pMatrix: any;
     private _pointers;
     /**
     * This is a static function which should always be called before Viewer is instantiated.

@@ -18,6 +18,7 @@ export { ProductInheritance } from './product-inheritance';
 export { NavigationCube } from "./plugins/NavigationCube/navigation-cube";
 export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
+export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
 
 export { ViewerSession } from './transactions/viewer-session';
 
@@ -272,7 +273,7 @@ export class Viewer {
     private _geometryLoaded: boolean;
     private _plugins: IPlugin[];
     private _stylingChanged: boolean;
-    private _handles: ModelHandle[];
+    public _handles: ModelHandle[];
     public highlightingColour: number[];
     public navigationMode: 'pan' | 'zoom' | 'orbit' | 'fixed-orbit' | 'free-orbit' | 'none';
     private _userAction: boolean;
@@ -301,17 +302,17 @@ export class Viewer {
     private _lastStates: { [id: string]: string };
     private _visualStateAttributes: string[];
     public renderingMode: RenderingMode;
-    private _clippingPlaneA: number[];
-    private _clippingA: boolean;
-    private _clippingPlaneB: number[];
-    private _clippingB: boolean;
+    public _clippingPlaneA: number[];
+    public _clippingA: boolean;
+    public _clippingPlaneB: number[];
+    public _clippingB: boolean;
     private _lastClippingPoint: number[];
 
     public gl: WebGLRenderingContext;
     public mvMatrix: Float32Array;
 
     private _fpt: any;
-    private _pMatrix: any;
+    public _pMatrix: any;
     private _pointers: ModelPointers;
 
     /**
@@ -1742,8 +1743,6 @@ export class Viewer {
     //this renders the colour coded model into the memory buffer
     //not to the canvas and use it to identify ID of the object from that
     public getID(x, y, modelId: boolean = false) {
-        return null;
-
         //call all before-drawId plugins
         this._plugins.forEach((plugin) => {
             if (!plugin.onBeforeDrawId) {
