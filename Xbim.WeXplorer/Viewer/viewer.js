@@ -1255,7 +1255,7 @@ var Viewer = /** @class */ (function () {
             if (!this._userAction)
                 return;
         }
-        this._userAction = true;
+        this._userAction = false;
         //call all before-draw plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDraw) {

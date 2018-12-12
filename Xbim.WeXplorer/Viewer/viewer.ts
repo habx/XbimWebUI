@@ -276,7 +276,7 @@ export class Viewer {
     public _handles: ModelHandle[];
     public highlightingColour: number[];
     public navigationMode: 'pan' | 'zoom' | 'orbit' | 'fixed-orbit' | 'free-orbit' | 'none';
-    private _userAction: boolean;
+    public _userAction: boolean;
     public _shaderProgram: WebGLProgram;
     public _origin: number[];
     public lightA: number[];
@@ -1471,7 +1471,7 @@ export class Viewer {
         if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this.isChanged())) {
             if (!this._userAction) return;
         }
-        this._userAction = true;
+        this._userAction = false;
 
         //call all before-draw plugins
         this._plugins.forEach((plugin) => {

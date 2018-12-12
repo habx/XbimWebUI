@@ -54,7 +54,7 @@ export declare class Viewer {
     _handles: ModelHandle[];
     highlightingColour: number[];
     navigationMode: 'pan' | 'zoom' | 'orbit' | 'fixed-orbit' | 'free-orbit' | 'none';
-    private _userAction;
+    _userAction: boolean;
     _shaderProgram: WebGLProgram;
     _origin: number[];
     lightA: number[];

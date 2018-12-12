@@ -120,6 +120,8 @@ export class PulseHighlight implements IPlugin {
         this.draw();
 
         this.setInactive();
+
+        this.viewer._userAction = true;
     }
 
     public onBeforeDrawId() { }

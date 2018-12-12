@@ -138,6 +138,7 @@ var PulseHighlight = /** @class */ (function () {
         var gl = this.setActive();
         this.draw();
         this.setInactive();
+        this.viewer._userAction = true;
     };
     PulseHighlight.prototype.onBeforeDrawId = function () { };
     PulseHighlight.prototype.onAfterDrawId = function () { };
