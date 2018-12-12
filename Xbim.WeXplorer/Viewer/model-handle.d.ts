@@ -11,15 +11,12 @@ export declare class ModelHandle {
     private _vertexTextureSize;
     private _matrixTextureSize;
     private _styleTextureSize;
-    private _vertexTexture;
-    private _matrixTexture;
     private _styleTexture;
+    private _vertexBuffer;
     private _normalBuffer;
-    private _indexBuffer;
     private _productBuffer;
     private _styleBuffer;
     private _stateBuffer;
-    private _transformationBuffer;
     private _feedCompleted;
     region: Region;
     constructor(gl: any, model: ModelGeometry);

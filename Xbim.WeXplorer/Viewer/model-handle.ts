@@ -24,17 +24,14 @@ export class ModelHandle {
     private _vertexTextureSize: number;
     private _matrixTextureSize: number;
     private _styleTextureSize: number;
-
-    private _vertexTexture: WebGLTexture;
-    private _matrixTexture: WebGLTexture;
+    
     private _styleTexture: WebGLTexture;
 
+    private _vertexBuffer: WebGLBuffer;
     private _normalBuffer: WebGLBuffer;
-    private _indexBuffer: WebGLBuffer;
     private _productBuffer: WebGLBuffer;
     private _styleBuffer: WebGLBuffer;
     private _stateBuffer: WebGLBuffer;
-    private _transformationBuffer: WebGLBuffer;
 
     private _feedCompleted: boolean;
 
@@ -61,20 +58,15 @@ export class ModelHandle {
         this._numberOfIndices = model.indices.length;
 
         //data structure 
-        this._vertexTexture = gl.createTexture();
-        this._matrixTexture = gl.createTexture();
         this._styleTexture = gl.createTexture();
-
-        this._vertexTextureSize = 0;
-        this._matrixTextureSize = 0;
+        
         this._styleTextureSize = 0;
 
+        this._vertexBuffer = gl.createBuffer();
         this._normalBuffer = gl.createBuffer();
-        this._indexBuffer = gl.createBuffer();
         this._productBuffer = gl.createBuffer();
         this._styleBuffer = gl.createBuffer();
         this._stateBuffer = gl.createBuffer();
-        this._transformationBuffer = gl.createBuffer();
 
         //small texture which can be used to overwrite appearance of the products
         this._feedCompleted = false;
@@ -108,18 +100,6 @@ export class ModelHandle {
 
         var gl = this._gl;
         //set predefined textures
-        if (this._vertexTextureSize > 0) {
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, this._vertexTexture);
-            gl.uniform1i(pointers.VertexSamplerUniform, 1);
-        }
-
-        if (this._matrixTextureSize > 0) {
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, this._matrixTexture);
-            gl.uniform1i(pointers.MatrixSamplerUniform, 2);
-        }
-
         if (this._styleTextureSize > 0) {
             gl.activeTexture(gl.TEXTURE3);
             gl.bindTexture(gl.TEXTURE_2D, this._styleTexture);
@@ -127,11 +107,12 @@ export class ModelHandle {
         }
 
         //set attributes and uniforms
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._vertexBuffer);
+        gl.vertexAttribPointer(pointers.PositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
+
         gl.bindBuffer(gl.ARRAY_BUFFER, this._normalBuffer);
         gl.vertexAttribPointer(pointers.NormalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._indexBuffer);
-        gl.vertexAttribPointer(pointers.IndexlAttrPointer, 1, gl.FLOAT, false, 0, 0);
+      
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
         gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
@@ -141,12 +122,7 @@ export class ModelHandle {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this._styleBuffer);
         gl.vertexAttribPointer(pointers.StyleAttrPointer, 1, gl.UNSIGNED_SHORT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._transformationBuffer);
-        gl.vertexAttribPointer(pointers.TransformationAttrPointer, 1, gl.FLOAT, false, 0, 0);
-
-        gl.uniform1i(pointers.VertexTextureSizeUniform, this._vertexTextureSize);
-        gl.uniform1i(pointers.MatrixTextureSizeUniform, this._matrixTextureSize);
+        
         gl.uniform1i(pointers.StyleTextureSizeUniform, this._styleTextureSize);
     }
 
@@ -226,17 +202,14 @@ export class ModelHandle {
 
     public unload() {
         var gl = this._gl;
-
-        gl.deleteTexture(this._vertexTexture);
-        gl.deleteTexture(this._matrixTexture);
+        
         gl.deleteTexture(this._styleTexture);
 
+        gl.deleteBuffer(this._vertexBuffer);
         gl.deleteBuffer(this._normalBuffer);
-        gl.deleteBuffer(this._indexBuffer);
         gl.deleteBuffer(this._productBuffer);
         gl.deleteBuffer(this._styleBuffer);
         gl.deleteBuffer(this._stateBuffer);
-        gl.deleteBuffer(this._transformationBuffer);
     }
 
     public feedGPU() {
@@ -248,16 +221,13 @@ export class ModelHandle {
         var model = this.model;
 
         //fill all buffers
+        this.bufferData(this._vertexBuffer, model.vertices);
         this.bufferData(this._normalBuffer, model.normals);
-        this.bufferData(this._indexBuffer, model.indices);
         this.bufferData(this._productBuffer, model.products);
         this.bufferData(this._stateBuffer, model.states);
-        this.bufferData(this._transformationBuffer, model.transformations);
         this.bufferData(this._styleBuffer, model.styleIndices);
 
         //fill in all textures
-        this._vertexTextureSize = ModelHandle.bufferTexture(gl, this._vertexTexture, model.vertices, 3);
-        this._matrixTextureSize = ModelHandle.bufferTexture(gl, this._matrixTexture, model.matrices, 4);
         this._styleTextureSize = ModelHandle.bufferTexture(gl, this._styleTexture, model.styles);
 
 

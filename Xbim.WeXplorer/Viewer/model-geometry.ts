@@ -3,6 +3,9 @@ import { TriangulatedShape } from "./triangulated-shape";
 import { State } from "./state";
 import { ProductType } from "./product-type";
 
+import { mat4 } from "./matrix/mat4";
+import { vec3 } from "./matrix/vec3";
+
 export class ModelGeometry {
     //all this data is to be fed into GPU as attributes
     normals: Uint8Array;
@@ -67,7 +70,7 @@ export class ModelGeometry {
         };
 
         //create target buffers of correct size (avoid reallocation of memory)
-        this.vertices = new Float32Array(square(4, numVertices * 3));
+        this.vertices = new Float32Array(numTriangles * 3 * 3);
         this.normals = new Uint8Array(numTriangles * 6);
         this.indices = new Float32Array(numTriangles * 3);
         this.styleIndices = new Uint16Array(numTriangles * 3);
@@ -157,12 +160,21 @@ export class ModelGeometry {
                 if (styleItem === null)
                     styleItem = defaultStyle;
 
+                const matrix = mat4.create();
+                if (transformation) {
+                    for (var i = 0; i < 4; i++) {
+                        for (var j = 0; j < 4; j++) {
+                            matrix[(i * 4) + j] = transformation[(i * 4) + j];
+                        }
+                    }
+                }
+
                 shapeList.push({
                     pLabel: prodLabel,
                     iLabel: instanceLabel,
                     style: styleItem.index,
                     transparent: styleItem.transparent,
-                    transform: transformation != null ? iTransform++ : -1
+                    transformation: matrix
                 });
             }
 
@@ -207,9 +219,19 @@ export class ModelGeometry {
                     this.indices[iIndex] = shapeGeom.indices[i] + iVertex / 3;
                     this.products[iIndex] = map.renderId;
                     this.styleIndices[iIndex] = shape.style;
-                    this.transformations[iIndex] = shape.transform;
                     this.states[2 * iIndex] = state; //set state
                     this.states[2 * iIndex + 1] = 0xFF; //default style
+
+                    const vertex = vec3.create();
+                    vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
+                    vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
+                    vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
+
+                    const transformedVertex = vec3.transformMat4(vec3.create(), vertex, shape.transformation);
+
+                    this.vertices[3 * iIndex] = transformedVertex[0];
+                    this.vertices[3 * iIndex + 1] = transformedVertex[1];
+                    this.vertices[3 * iIndex + 2] = transformedVertex[2];
 
                     iIndex++;
                 }
@@ -222,9 +244,8 @@ export class ModelGeometry {
             },
                 this);
 
-            //copy geometry and keep track of amount so that we can fix indices to right position
+            //keep track of amount so that we can fix indices to right position
             //this must be the last step to have correct iVertex number above
-            this.vertices.set(shapeGeom.vertices, iVertex);
             iVertex += shapeGeom.vertices.length;
             shapeGeom = null;
         }

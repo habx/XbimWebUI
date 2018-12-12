@@ -1,7 +1,6 @@
-attribute highp float aVertexIndex;
-attribute highp float aTransformationIndex;
 attribute highp float aStyleIndex;
 attribute highp float aProduct;
+attribute highp vec3 aPosition;
 attribute highp vec2 aState;
 attribute highp vec2 aNormal;
 
@@ -25,14 +24,6 @@ uniform int uColorCoding;
 
 //used for 3 states in x-ray rendering (no x-ray, only highlighted, only non-highlighted as semitransparent)
 uniform int uRenderingMode;
-
-//sampler with vertices
-uniform highp sampler2D uVertexSampler;
-uniform int uVertexTextureSize;
-
-//sampler with transformation matrices
-uniform highp sampler2D uMatrixSampler;
-uniform int uMatrixTextureSize;
 
 //sampler with default styles
 uniform highp sampler2D uStyleSampler;
@@ -98,28 +89,6 @@ vec4 getColor() {
 	return texture2D(uStateStyleSampler, coords);
 }
 
-vec3 getVertexPosition() {
-	int index = int(floor(aVertexIndex + 0.5));
-	vec2 coords = getTextureCoordinates(index, uVertexTextureSize);
-	vec3 point = vec3(texture2D(uVertexSampler, coords));
-	if (aTransformationIndex < 0.0) {
-		return point;
-	}
-
-	int tIndex = int(floor(aTransformationIndex + 0.5));
-
-	tIndex *= 4;
-	//get transformation matrix 4x4 and transform the point
-	mat4 transform = mat4(
-		texture2D(uMatrixSampler, getTextureCoordinates(tIndex, uMatrixTextureSize)),
-		texture2D(uMatrixSampler, getTextureCoordinates(tIndex + 1, uMatrixTextureSize)),
-		texture2D(uMatrixSampler, getTextureCoordinates(tIndex + 2, uMatrixTextureSize)),
-		texture2D(uMatrixSampler, getTextureCoordinates(tIndex + 3, uMatrixTextureSize))
-	);
-
-	return vec3(transform * vec4(point, 1.0));
-}
-
 void main(void) {
 	int state = int(floor(aState[0] + 0.5));
 	vDiscard = 0.0;
@@ -136,7 +105,7 @@ void main(void) {
 	}
 
 	//transform data to simulate camera perspective and position
-	vec3 vertex = getVertexPosition();
+	vec3 vertex = aPosition;
 	vec3 normal = getNormal();
 	vec3 backNormal = normal * -1.0;
 

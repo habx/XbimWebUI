@@ -110,12 +110,12 @@ var Viewer = /** @class */ (function () {
         * Array of four integers between 0 and 255 representing RGBA colour components. This defines background colour of the viewer. You can change this value at any time with instant effect.
         * @member {Number[]} Viewer#background
         */
-        this.background = [230, 230, 230, 255];
+        this.background = [230, 230, 230, 1.0];
         /**
         * Array of four integers between 0 and 255 representing RGBA colour components. This defines colour for highlighted elements. You can change this value at any time with instant effect.
         * @member {Number[]} Viewer#highlightingColour
         */
-        this.highlightingColour = [255, 173, 33, 255];
+        this.highlightingColour = [255, 173, 33, 1.0];
         /**
         * Array of four floats. It represents Light A's position <strong>XYZ</strong> and intensity <strong>I</strong> as [X, Y, Z, I]. Intensity should be in range 0.0 - 1.0.
         * @member {Number[]} Viewer#lightA
@@ -425,6 +425,7 @@ var Viewer = /** @class */ (function () {
     * @param {Number} [modelId = null] - Optional Model ID. Id no ID is specified states are reset for all models.
     */
     Viewer.prototype.resetStates = function (hideSpaces, modelId) {
+        if (hideSpaces === void 0) { hideSpaces = true; }
         this.forHandleOrAll(function (h) {
             h.resetStates();
             if (hideSpaces)
@@ -1245,7 +1246,7 @@ var Viewer = /** @class */ (function () {
             if (!this._userAction)
                 return;
         }
-        this._userAction = false;
+        this._userAction = true;
         //call all before-draw plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDraw) {
@@ -1260,7 +1261,7 @@ var Viewer = /** @class */ (function () {
         var height = this._height;
         gl.useProgram(this._shaderProgram);
         gl.viewport(0, 0, width, height);
-        gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3] / 255);
+        gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         //set up camera
         switch (this.camera) {
@@ -1299,7 +1300,7 @@ var Viewer = /** @class */ (function () {
             this.highlightingColour[0] / 255.0,
             this.highlightingColour[1] / 255.0,
             this.highlightingColour[2] / 255.0,
-            this.highlightingColour[3] / 255.0
+            this.highlightingColour[3]
         ]));
         gl.uniform1i(this._renderingModeUniformPointer, this.renderingMode);
         //check for x-ray mode
@@ -1953,26 +1954,20 @@ exports.Viewer = Viewer;
 var ModelPointers = /** @class */ (function () {
     function ModelPointers(gl, program) {
         //get attribute pointers
+        this.PositionAttrPointer = gl.getAttribLocation(program, 'aPosition');
         this.NormalAttrPointer = gl.getAttribLocation(program, 'aNormal');
-        this.IndexlAttrPointer = gl.getAttribLocation(program, 'aVertexIndex');
         this.ProductAttrPointer = gl.getAttribLocation(program, 'aProduct');
         this.StateAttrPointer = gl.getAttribLocation(program, 'aState');
         this.StyleAttrPointer = gl.getAttribLocation(program, 'aStyleIndex');
-        this.TransformationAttrPointer = gl.getAttribLocation(program, 'aTransformationIndex');
         //get uniform pointers
-        this.VertexSamplerUniform = gl.getUniformLocation(program, 'uVertexSampler');
-        this.MatrixSamplerUniform = gl.getUniformLocation(program, 'uMatrixSampler');
         this.StyleSamplerUniform = gl.getUniformLocation(program, 'uStyleSampler');
-        this.VertexTextureSizeUniform = gl.getUniformLocation(program, 'uVertexTextureSize');
-        this.MatrixTextureSizeUniform = gl.getUniformLocation(program, 'uMatrixTextureSize');
         this.StyleTextureSizeUniform = gl.getUniformLocation(program, 'uStyleTextureSize');
         //enable vertex attributes arrays
+        gl.enableVertexAttribArray(this.PositionAttrPointer);
         gl.enableVertexAttribArray(this.NormalAttrPointer);
-        gl.enableVertexAttribArray(this.IndexlAttrPointer);
         gl.enableVertexAttribArray(this.ProductAttrPointer);
         gl.enableVertexAttribArray(this.StateAttrPointer);
         gl.enableVertexAttribArray(this.StyleAttrPointer);
-        gl.enableVertexAttribArray(this.TransformationAttrPointer);
     }
     return ModelPointers;
 }());

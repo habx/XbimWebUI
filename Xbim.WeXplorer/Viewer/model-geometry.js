@@ -4,6 +4,8 @@ var binary_reader_1 = require("./binary-reader");
 var triangulated_shape_1 = require("./triangulated-shape");
 var state_1 = require("./state");
 var product_type_1 = require("./product-type");
+var mat4_1 = require("./matrix/mat4");
+var vec3_1 = require("./matrix/vec3");
 var ModelGeometry = /** @class */ (function () {
     function ModelGeometry() {
         this.meter = 1000;
@@ -55,7 +57,7 @@ var ModelGeometry = /** @class */ (function () {
             return result;
         };
         //create target buffers of correct size (avoid reallocation of memory)
-        this.vertices = new Float32Array(square(4, numVertices * 3));
+        this.vertices = new Float32Array(numTriangles * 3 * 3);
         this.normals = new Uint8Array(numTriangles * 6);
         this.indices = new Float32Array(numTriangles * 3);
         this.styleIndices = new Uint16Array(numTriangles * 3);
@@ -133,12 +135,20 @@ var ModelGeometry = /** @class */ (function () {
                 var styleItem = styleMap['getStyle'](styleId);
                 if (styleItem === null)
                     styleItem = defaultStyle;
+                var matrix = mat4_1.mat4.create();
+                if (transformation) {
+                    for (var i = 0; i < 4; i++) {
+                        for (var j = 0; j < 4; j++) {
+                            matrix[(i * 4) + j] = transformation[(i * 4) + j];
+                        }
+                    }
+                }
                 shapeList.push({
                     pLabel: prodLabel,
                     iLabel: instanceLabel,
                     style: styleItem.index,
                     transparent: styleItem.transparent,
-                    transform: transformation != null ? iTransform++ : -1
+                    transformation: matrix
                 });
             }
             //read shape geometry
@@ -177,9 +187,16 @@ var ModelGeometry = /** @class */ (function () {
                     _this.indices[iIndex] = shapeGeom.indices[i] + iVertex / 3;
                     _this.products[iIndex] = map.renderId;
                     _this.styleIndices[iIndex] = shape.style;
-                    _this.transformations[iIndex] = shape.transform;
                     _this.states[2 * iIndex] = state; //set state
                     _this.states[2 * iIndex + 1] = 0xFF; //default style
+                    var vertex = vec3_1.vec3.create();
+                    vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
+                    vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
+                    vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
+                    var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                    _this.vertices[3 * iIndex] = transformedVertex[0];
+                    _this.vertices[3 * iIndex + 1] = transformedVertex[1];
+                    _this.vertices[3 * iIndex + 2] = transformedVertex[2];
                     iIndex++;
                 }
                 var end = iIndex;
@@ -189,9 +206,8 @@ var ModelGeometry = /** @class */ (function () {
                 else
                     iIndexForward += shapeGeom.indices.length;
             }, this);
-            //copy geometry and keep track of amount so that we can fix indices to right position
+            //keep track of amount so that we can fix indices to right position
             //this must be the last step to have correct iVertex number above
-            this.vertices.set(shapeGeom.vertices, iVertex);
             iVertex += shapeGeom.vertices.length;
             shapeGeom = null;
         }
