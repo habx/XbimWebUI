@@ -173,8 +173,10 @@ var Viewer = /** @class */ (function () {
         gl.enable(gl.BLEND);
         //cache canvas width and height and change it only when size change
         // it is better to cache this value because it is used frequently and it takes a time to get a value from HTML
-        this._width = this._canvas.width = this._canvas.offsetWidth;
-        this._height = this._canvas.height = this._canvas.offsetHeight;
+        this._renderWidth = this._canvas.width || this._canvas.offsetWidth;
+        this._renderHeight = this._canvas.height || this._canvas.offsetHeight;
+        this._width = this._canvas.offsetWidth;
+        this._height = this._canvas.offsetHeight;
         this._geometryLoaded = false;
         //number of active models is used to indicate that state has changed
         this._numberOfActiveModels = 0;
@@ -183,7 +185,7 @@ var Viewer = /** @class */ (function () {
         this._visualStateAttributes = [
             'perspectiveCamera', 'orthogonalCamera', 'camera', 'background', 'lightA', 'lightB',
             'renderingMode', '_clippingA', '_clippingB', 'mvMatrix', '_pMatrix', '_distance', '_origin', 'highlightingColour',
-            '_numberOfActiveModels', "_width", "_height"
+            '_numberOfActiveModels', "_width", "_height", "_renderWidth", "_renderHeight"
         ];
         this._stylingChanged = true;
         //this is to indicate that user has done some interaction
@@ -759,8 +761,8 @@ var Viewer = /** @class */ (function () {
             var ratio = 1.8;
             viewer.orthogonalCamera.top = maxSize / ratio;
             viewer.orthogonalCamera.bottom = maxSize / ratio * -1;
-            viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._width / viewer._height;
-            viewer.orthogonalCamera.right = maxSize / ratio * viewer._width / viewer._height;
+            viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._renderWidth / viewer._renderHeight;
+            viewer.orthogonalCamera.right = maxSize / ratio * viewer._renderWidth / viewer._renderHeight;
             //set default view
             viewer.setCameraTarget();
             var dist = Math.sqrt(viewer._distance * viewer._distance * 1.5);
@@ -987,12 +989,17 @@ var Viewer = /** @class */ (function () {
             _this.navigate('zoom', sign(event.deltaX) * -1.0, sign(event.deltaY) * -1.0);
         };
         //watch resizing of canvas every 500ms
-        var elementHeight = viewer.height;
-        var elementWidth = viewer.width;
         setInterval(function () {
-            if (viewer._canvas.offsetHeight !== elementHeight || viewer._canvas.offsetWidth !== elementWidth) {
-                elementHeight = viewer._height = viewer._canvas.height = viewer._canvas.offsetHeight;
-                elementWidth = viewer._width = viewer._canvas.width = viewer._canvas.offsetWidth;
+            var newRenderHeight = viewer._canvas.height || viewer._canvas.offsetHeight;
+            var newRenderWidth = viewer._canvas.width || viewer._canvas.offsetWidth;
+            var newHeight = viewer._canvas.offsetHeight;
+            var newWidth = viewer._canvas.offsetWidth;
+            if (newRenderHeight != viewer._renderHeight || newRenderWidth != viewer._renderWidth ||
+                newHeight != viewer._height || newWidth != viewer._width) {
+                viewer._renderHeight = newRenderHeight;
+                viewer._renderWidth = newRenderWidth;
+                viewer._height = newHeight;
+                viewer._width = newWidth;
             }
         }, 500);
         //attach callbacks
@@ -1257,8 +1264,9 @@ var Viewer = /** @class */ (function () {
         //styles are up to date when new frame is drawn
         this._stylingChanged = false;
         var gl = this.gl;
-        var width = this._width;
-        var height = this._height;
+        var width = this._renderWidth;
+        var height = this._renderHeight;
+        var ratio = this._width / this._height;
         gl.useProgram(this._shaderProgram);
         gl.viewport(0, 0, width, height);
         gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
@@ -1266,13 +1274,13 @@ var Viewer = /** @class */ (function () {
         //set up camera
         switch (this.camera) {
             case 'perspective':
-                mat4_1.mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, this._width / this._height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+                mat4_1.mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, ratio, this.perspectiveCamera.near, this.perspectiveCamera.far);
                 break;
             case 'orthogonal':
                 mat4_1.mat4.ortho(this._pMatrix, this.orthogonalCamera.left, this.orthogonalCamera.right, this.orthogonalCamera.bottom, this.orthogonalCamera.top, this.orthogonalCamera.near, this.orthogonalCamera.far);
                 break;
             default:
-                mat4_1.mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, this._width / this._height, this.perspectiveCamera.near, this.perspectiveCamera.far);
+                mat4_1.mat4.perspective(this._pMatrix, this.perspectiveCamera.fov * Math.PI / 180.0, ratio, this.perspectiveCamera.near, this.perspectiveCamera.far);
                 break;
         }
         //set uniforms (these may quickly change between calls to draw)
@@ -1323,6 +1331,7 @@ var Viewer = /** @class */ (function () {
             });
         }
         else {
+            console.time('draw');
             gl.disable(gl.CULL_FACE);
             //two runs, first for solids from all models, second for transparent objects from all models
             //this makes sure that transparent objects are always rendered at the end.
@@ -1338,6 +1347,7 @@ var Viewer = /** @class */ (function () {
                     handle.draw('transparent');
                 }
             });
+            console.timeEnd('draw');
         }
         //call all after-draw plugins
         this._plugins.forEach(function (plugin) {
@@ -1464,6 +1474,7 @@ var Viewer = /** @class */ (function () {
     Viewer.prototype.getID = function (x, y, modelId) {
         var _this = this;
         if (modelId === void 0) { modelId = false; }
+        return null;
         //call all before-drawId plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDrawId) {
@@ -1474,10 +1485,10 @@ var Viewer = /** @class */ (function () {
         //it is not necessary to render the image in full resolution so this factor is used for less resolution. 
         var factor = 2;
         var gl = this.gl;
-        var width = this._width / factor;
-        var height = this._height / factor;
-        x = x / factor;
-        y = y / factor;
+        var width = this._renderWidth / factor;
+        var height = this._renderHeight / factor;
+        x = (x / factor) * (this._renderWidth / this._width);
+        y = (y / factor) * (this._renderHeight / this._height);
         //create framebuffer
         var frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
@@ -1836,8 +1847,8 @@ var Viewer = /** @class */ (function () {
             var inverse = mat4_1.mat4.create();
             mat4_1.mat4.invert(inverse, transform);
             //get normalized coordinates the point in WebGL CS
-            var x1 = position.x / (viewer._width / 2.0) - 1.0;
-            var y1 = 1.0 - position.y / (viewer._height / 2.0);
+            var x1 = position.x / (viewer._renderWidth / 2.0) - 1.0;
+            var y1 = 1.0 - position.y / (viewer._renderHeight / 2.0);
             //First point in WCS
             var A = vec3_1.vec3.create();
             vec3_1.vec3.transformMat4(A, [x1, y1, -1], inverse); //near clipping plane

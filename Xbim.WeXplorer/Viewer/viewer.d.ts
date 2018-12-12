@@ -37,9 +37,9 @@ export declare class Viewer {
         far: number;
     };
     _width: number;
-    private width;
     _height: number;
-    private height;
+    private _renderWidth;
+    private _renderHeight;
     _distance: number;
     camera: 'perspective' | 'orthogonal';
     background: number[];

@@ -185,8 +185,11 @@ export class Viewer {
 
         //cache canvas width and height and change it only when size change
         // it is better to cache this value because it is used frequently and it takes a time to get a value from HTML
-        this._width = this._canvas.width = this._canvas.offsetWidth;
-        this._height = this._canvas.height = this._canvas.offsetHeight;
+        this._renderWidth = this._canvas.width || this._canvas.offsetWidth;
+        this._renderHeight = this._canvas.height || this._canvas.offsetHeight;
+
+        this._width = this._canvas.offsetWidth;
+        this._height = this._canvas.offsetHeight;
 
         this._geometryLoaded = false;
         //number of active models is used to indicate that state has changed
@@ -196,7 +199,7 @@ export class Viewer {
         this._visualStateAttributes = [
             'perspectiveCamera', 'orthogonalCamera', 'camera', 'background', 'lightA', 'lightB',
             'renderingMode', '_clippingA', '_clippingB', 'mvMatrix', '_pMatrix', '_distance', '_origin', 'highlightingColour',
-            '_numberOfActiveModels', "_width", "_height"
+            '_numberOfActiveModels', "_width", "_height", "_renderWidth", "_renderHeight"
         ];
         this._stylingChanged = true;
 
@@ -257,9 +260,9 @@ export class Viewer {
     public perspectiveCamera: { fov: number, near: number, far: number };
     public orthogonalCamera: { left: number, right: number, top: number, bottom: number, near: number, far: number }
     public _width: number;
-    private width: number;
     public _height: number;
-    private height: number;
+    private _renderWidth: number;
+    private _renderHeight: number;
     public _distance: number;
     public camera: 'perspective' | 'orthogonal';
     public background: number[];
@@ -873,8 +876,8 @@ export class Viewer {
             var ratio = 1.8;
             viewer.orthogonalCamera.top = maxSize / ratio;
             viewer.orthogonalCamera.bottom = maxSize / ratio * -1;
-            viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._width / viewer._height;
-            viewer.orthogonalCamera.right = maxSize / ratio * viewer._width / viewer._height;
+            viewer.orthogonalCamera.left = maxSize / ratio * -1 * viewer._renderWidth / viewer._renderHeight;
+            viewer.orthogonalCamera.right = maxSize / ratio * viewer._renderWidth / viewer._renderHeight;
 
             //set default view
             viewer.setCameraTarget();
@@ -1154,15 +1157,23 @@ export class Viewer {
 
 
         //watch resizing of canvas every 500ms
-        var elementHeight = viewer.height;
-        var elementWidth = viewer.width;
         setInterval(() => {
-            if (viewer._canvas.offsetHeight !== elementHeight || viewer._canvas.offsetWidth !== elementWidth) {
-                elementHeight = viewer._height = viewer._canvas.height = viewer._canvas.offsetHeight;
-                elementWidth = viewer._width = viewer._canvas.width = viewer._canvas.offsetWidth;
+            var newRenderHeight = viewer._canvas.height || viewer._canvas.offsetHeight;
+            var newRenderWidth = viewer._canvas.width || viewer._canvas.offsetWidth;
+
+            var newHeight = viewer._canvas.offsetHeight;
+            var newWidth = viewer._canvas.offsetWidth;
+
+            if (
+                newRenderHeight != viewer._renderHeight || newRenderWidth != viewer._renderWidth ||
+                newHeight != viewer._height || newWidth != viewer._width
+            ) {
+                viewer._renderHeight = newRenderHeight;
+                viewer._renderWidth = newRenderWidth;
+                viewer._height = newHeight;
+                viewer._width = newWidth;
             }
-        },
-            500);
+        }, 500);
 
 
         //attach callbacks
@@ -1473,8 +1484,9 @@ export class Viewer {
         this._stylingChanged = false;
 
         var gl = this.gl;
-        var width = this._width;
-        var height = this._height;
+        var width = this._renderWidth;
+        var height = this._renderHeight;
+        var ratio = this._width / this._height
 
         gl.useProgram(this._shaderProgram);
         gl.viewport(0, 0, width, height);
@@ -1491,7 +1503,7 @@ export class Viewer {
             case 'perspective':
                 mat4.perspective(this._pMatrix,
                     this.perspectiveCamera.fov * Math.PI / 180.0,
-                    this._width / this._height,
+                    ratio,
                     this.perspectiveCamera.near,
                     this.perspectiveCamera.far);
                 break;
@@ -1509,7 +1521,7 @@ export class Viewer {
             default:
                 mat4.perspective(this._pMatrix,
                     this.perspectiveCamera.fov * Math.PI / 180.0,
-                    this._width / this._height,
+                    ratio,
                     this.perspectiveCamera.near,
                     this.perspectiveCamera.far);
                 break;
@@ -1570,6 +1582,7 @@ export class Viewer {
                 }
             });
         } else {
+            console.time('draw')
             gl.disable(gl.CULL_FACE);
 
             //two runs, first for solids from all models, second for transparent objects from all models
@@ -1587,6 +1600,7 @@ export class Viewer {
                     handle.draw('transparent');
                 }
             });
+            console.timeEnd('draw')
         }
 
         //call all after-draw plugins
@@ -1728,6 +1742,7 @@ export class Viewer {
     //this renders the colour coded model into the memory buffer
     //not to the canvas and use it to identify ID of the object from that
     public getID(x, y, modelId: boolean = false) {
+        return null;
 
         //call all before-drawId plugins
         this._plugins.forEach((plugin) => {
@@ -1740,10 +1755,10 @@ export class Viewer {
         //it is not necessary to render the image in full resolution so this factor is used for less resolution. 
         var factor = 2;
         var gl = this.gl;
-        var width = this._width / factor;
-        var height = this._height / factor;
-        x = x / factor;
-        y = y / factor;
+        var width = this._renderWidth / factor;
+        var height = this._renderHeight / factor;
+        x = (x / factor) * (this._renderWidth / this._width);
+        y = (y / factor) * (this._renderHeight / this._height);
 
         //create framebuffer
         var frameBuffer = gl.createFramebuffer();
@@ -2170,8 +2185,8 @@ export class Viewer {
             mat4.invert(inverse, transform);
 
             //get normalized coordinates the point in WebGL CS
-            var x1 = position.x / (viewer._width / 2.0) - 1.0;
-            var y1 = 1.0 - position.y / (viewer._height / 2.0);
+            var x1 = position.x / (viewer._renderWidth / 2.0) - 1.0;
+            var y1 = 1.0 - position.y / (viewer._renderHeight / 2.0);
 
             //First point in WCS
             var A = vec3.create();
