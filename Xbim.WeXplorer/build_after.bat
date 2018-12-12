@@ -1,7 +1,7 @@
 Utilities\TypingsBundler.exe Build
 
 rem Generate fresh documentation
-npm run jsdoc && ^
+rem npm run jsdoc && ^
 
 rem Build packages
 SET NODE_ENV=development&& webpack -d && ^
