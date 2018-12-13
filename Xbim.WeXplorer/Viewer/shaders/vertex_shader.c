@@ -94,7 +94,7 @@ void main(void) {
 	vDiscard = 0.0;
 
 	//HIDDEN state or xray rendering and no selection or 'x-ray visible' state
-	if (state == 254)
+	if (state == 254 || (state == 253 && uHighlightColour.a == 0.0))
 	{
 		vDiscard = 1.0;
 		vFrontColor = vec4(0.0, 0.0, 0.0, 0.0);
@@ -150,7 +150,7 @@ void main(void) {
 		if (state == 253) { //highlighted
 			baseColor = uHighlightColour;
 		}
-		if (uRenderingMode != 2 && state != 253) {
+		if (uRenderingMode != 2) {
 			baseColor = getColor();
 		}
 

@@ -168,6 +168,8 @@
     <Content Include="build_before.bat" />
     <Content Include="tests\data\envelop.wexbim" />
     <TypeScriptCompile Include="Viewer\plugins\NavigationXYPlane\navigation-xy-plane.ts" />
+    <Content Include="Viewer\plugins\PulseHighlight\pulse_fshader.c" />
+    <Content Include="Viewer\plugins\PulseHighlight\pulse_vshader.c" />
     <Content Include="webpack.config.js" />
     <Content Include="Examples\WexBimStreamTest\wexbimtest.html" />
     <Content Include="Libs\gl-matrix\LICENSE.md" />
@@ -192,6 +194,8 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <TypeScriptCompile Include="Examples\TsSingleModule\index.ts" />
     <TypeScriptCompile Include="Viewer\common\dictionary.ts" />
+    <TypeScriptCompile Include="Viewer\plugins\PulseHighlight\pulse-highlight-shaders.ts" />
+    <TypeScriptCompile Include="Viewer\plugins\PulseHighlight\pulse-highlight.ts" />
     <TypeScriptCompile Include="Viewer\stream\wexbim-mesh.ts" />
     <TypeScriptCompile Include="Viewer\stream\wexbim-stream.ts" />
     <TypeScriptCompile Include="Viewer\transactions\session.ts" />

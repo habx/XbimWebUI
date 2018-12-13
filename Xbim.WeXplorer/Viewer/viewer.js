@@ -25,6 +25,8 @@ var navigation_home_1 = require("./plugins/NavigationHome/navigation-home");
 exports.NavigationHome = navigation_home_1.NavigationHome;
 var navigation_xy_plane_1 = require("./plugins/NavigationXYPlane/navigation-xy-plane");
 exports.NavigationXYPlane = navigation_xy_plane_1.NavigationXYPlane;
+var navigation_arcball_1 = require("./plugins/NavigationArcball/navigation-arcball");
+exports.NavigationArcball = navigation_arcball_1.NavigationArcball;
 var pulse_highlight_1 = require("./plugins/PulseHighlight/pulse-highlight");
 exports.PulseHighlight = pulse_highlight_1.PulseHighlight;
 var viewer_session_1 = require("./transactions/viewer-session");
@@ -1333,7 +1335,6 @@ var Viewer = /** @class */ (function () {
             });
         }
         else {
-            console.time('draw');
             gl.disable(gl.CULL_FACE);
             //two runs, first for solids from all models, second for transparent objects from all models
             //this makes sure that transparent objects are always rendered at the end.
@@ -1349,7 +1350,6 @@ var Viewer = /** @class */ (function () {
                     handle.draw('transparent');
                 }
             });
-            console.timeEnd('draw');
         }
         //call all after-draw plugins
         this._plugins.forEach(function (plugin) {
@@ -1476,6 +1476,7 @@ var Viewer = /** @class */ (function () {
     Viewer.prototype.getID = function (x, y, modelId) {
         var _this = this;
         if (modelId === void 0) { modelId = false; }
+        return null;
         //call all before-drawId plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDrawId) {

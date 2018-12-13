@@ -8,6 +8,7 @@ export { ProductInheritance } from './product-inheritance';
 export { NavigationCube } from "./plugins/NavigationCube/navigation-cube";
 export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
+export { NavigationArcball } from "./plugins/NavigationArcball/navigation-arcball";
 export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
 export { ViewerSession } from './transactions/viewer-session';
 export declare class Viewer {

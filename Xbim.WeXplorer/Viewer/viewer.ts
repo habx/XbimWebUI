@@ -18,6 +18,7 @@ export { ProductInheritance } from './product-inheritance';
 export { NavigationCube } from "./plugins/NavigationCube/navigation-cube";
 export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
+export { NavigationArcball } from "./plugins/NavigationArcball/navigation-arcball";
 export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
 
 export { ViewerSession } from './transactions/viewer-session';
@@ -1583,7 +1584,6 @@ export class Viewer {
                 }
             });
         } else {
-            console.time('draw')
             gl.disable(gl.CULL_FACE);
 
             //two runs, first for solids from all models, second for transparent objects from all models
@@ -1601,7 +1601,6 @@ export class Viewer {
                     handle.draw('transparent');
                 }
             });
-            console.timeEnd('draw')
         }
 
         //call all after-draw plugins
@@ -1743,6 +1742,7 @@ export class Viewer {
     //this renders the colour coded model into the memory buffer
     //not to the canvas and use it to identify ID of the object from that
     public getID(x, y, modelId: boolean = false) {
+        return null;
         //call all before-drawId plugins
         this._plugins.forEach((plugin) => {
             if (!plugin.onBeforeDrawId) {
