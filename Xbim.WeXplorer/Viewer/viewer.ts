@@ -1742,7 +1742,6 @@ export class Viewer {
     //this renders the colour coded model into the memory buffer
     //not to the canvas and use it to identify ID of the object from that
     public getID(x, y, modelId: boolean = false) {
-        return null;
         //call all before-drawId plugins
         this._plugins.forEach((plugin) => {
             if (!plugin.onBeforeDrawId) {

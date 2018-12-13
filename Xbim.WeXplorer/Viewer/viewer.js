@@ -1476,7 +1476,6 @@ var Viewer = /** @class */ (function () {
     Viewer.prototype.getID = function (x, y, modelId) {
         var _this = this;
         if (modelId === void 0) { modelId = false; }
-        return null;
         //call all before-drawId plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDrawId) {
