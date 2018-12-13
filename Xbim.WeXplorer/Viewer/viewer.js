@@ -865,8 +865,6 @@ var Viewer = /** @class */ (function () {
         var button = 'L';
         var id = -1;
         var modelId = -1;
-        viewer.lastMouseX = lastMouseX;
-        viewer.lastMouseY = lastMouseY;
         //set initial conditions so that different gestures can be identified
         var handleMouseDown = function (event) {
             mouseDown = true;
@@ -940,20 +938,18 @@ var Viewer = /** @class */ (function () {
             viewer.enableTextSelection();
         };
         var handleMouseMove = function (event) {
-            var newX = event.clientX;
-            var newY = event.clientY;
-            var deltaX = newX - lastMouseX;
-            var deltaY = newY - lastMouseY;
-            lastMouseX = newX;
-            lastMouseY = newY;
-            viewer.lastMouseX = lastMouseX;
-            viewer.lastMouseY = lastMouseY;
             if (!mouseDown) {
                 return;
             }
             if (viewer.navigationMode === 'none') {
                 return;
             }
+            var newX = event.clientX;
+            var newY = event.clientY;
+            var deltaX = newX - lastMouseX;
+            var deltaY = newY - lastMouseY;
+            lastMouseX = newX;
+            lastMouseY = newY;
             if (button === 'left') {
                 switch (viewer.navigationMode) {
                     case 'free-orbit':
@@ -1480,7 +1476,6 @@ var Viewer = /** @class */ (function () {
     Viewer.prototype.getID = function (x, y, modelId) {
         var _this = this;
         if (modelId === void 0) { modelId = false; }
-        console.time('getID');
         //call all before-drawId plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDrawId) {
@@ -1491,6 +1486,8 @@ var Viewer = /** @class */ (function () {
         //it is not necessary to render the image in full resolution so this factor is used for less resolution. 
         var factor = 8;
         var gl = this.gl;
+        var width = this._renderWidth / factor;
+        var height = this._renderHeight / factor;
         var xRatio = (x / this._width);
         var yRatio = (y / this._height);
         //create framebuffer
@@ -1522,7 +1519,7 @@ var Viewer = /** @class */ (function () {
             return null;
         }
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
-        gl.viewport(0, 0, this._renderWidth / factor, this._renderHeight / factor);
+        gl.viewport(0, 0, width, height);
         gl.enable(gl.DEPTH_TEST); //we don't use any kind of blending or transparency
         gl.enable(gl.SCISSOR_TEST);
         gl.scissor(0, 0, 1, 1);
@@ -1561,7 +1558,6 @@ var Viewer = /** @class */ (function () {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.enable(gl.BLEND);
         gl.disable(gl.SCISSOR_TEST);
-        console.timeEnd('getID');
         //decode ID (bit shifting by multiplication)
         var hasValue = result[3] != 0; //0 transparency is only for no-values
         if (hasValue) {
