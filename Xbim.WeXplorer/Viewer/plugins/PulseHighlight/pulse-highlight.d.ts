@@ -44,6 +44,7 @@ export declare class PulseHighlight implements IPlugin {
     private _clippingPlaneBUniformPointer;
     private _clippingBUniformPointer;
     private _highlightingColourUniformPointer;
+    private _stateStyleSamplerUniform;
     private _positionAttrPointer;
     private _stateAttrPointer;
     init(viewer: Viewer): void;

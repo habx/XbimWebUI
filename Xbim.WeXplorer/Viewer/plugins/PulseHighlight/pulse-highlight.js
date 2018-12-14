@@ -76,7 +76,7 @@ var PulseHighlight = /** @class */ (function () {
                 gl.shaderSource(shader, code);
                 gl.compileShader(shader);
                 if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-                    viewer._error(gl.getShaderInfoLog(shader));
+                    viewer.error(gl.getShaderInfoLog(shader));
                     return null;
                 }
             };
@@ -92,7 +92,7 @@ var PulseHighlight = /** @class */ (function () {
             gl.attachShader(this._shader, fragmentShader);
             gl.linkProgram(this._shader);
             if (!gl.getProgramParameter(this._shader, gl.LINK_STATUS)) {
-                viewer._error('Could not initialise shaders for pulse highlight plugin');
+                viewer.error('Could not initialise shaders for pulse highlight plugin');
             }
         };
     }
@@ -122,6 +122,7 @@ var PulseHighlight = /** @class */ (function () {
         this._clippingPlaneBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingPlaneB');
         this._clippingBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingB');
         this._highlightingColourUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColour");
+        this._stateStyleSamplerUniform = gl.getUniformLocation(this._shader, 'uStateStyleSampler');
         // Base attributes
         this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition"),
             this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState"),
@@ -164,6 +165,9 @@ var PulseHighlight = /** @class */ (function () {
         gl.uniform4fv(this._clippingPlaneBUniformPointer, new Float32Array(this.viewer._clippingPlaneB));
         gl.uniform1i(this._clippingAUniformPointer, this.viewer._clippingA ? 1 : 0);
         gl.uniform1i(this._clippingBUniformPointer, this.viewer._clippingB ? 1 : 0);
+        gl.activeTexture(gl.TEXTURE4);
+        gl.bindTexture(gl.TEXTURE_2D, this.viewer._stateStyleTexture);
+        gl.uniform1i(this._stateStyleSamplerUniform, 4);
         gl.uniform4fv(this._highlightingColourUniformPointer, new Float32Array([
             this._highlightingColor[0] / 255.0,
             this._highlightingColor[1] / 255.0,

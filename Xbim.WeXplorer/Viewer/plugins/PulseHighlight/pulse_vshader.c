@@ -18,10 +18,34 @@ uniform float uSin;
 varying vec4 vFrontColor;
 varying vec4 vBackColor;
 
+uniform highp sampler2D uStateStyleSampler;
+
 //varying position used for clipping in fragment shader
 varying vec3 vPosition;
 //state passed to fragment shader
 varying float vDiscard;
+
+
+vec2 getTextureCoordinates(int index, int size)
+{
+	float x = float(index - (index / size) * size);
+	float y = float(index / size);
+	float pixelSize = 1.0 / float(size);
+	//ask for the middle of the pixel
+	return vec2((x + 0.5) * pixelSize, (y + 0.5) * pixelSize);
+}
+
+
+vec4 getColor() {
+	int restyle = int(floor(aState[1] + 0.5));
+	if (restyle > 224) {
+		return uHighlightColour;
+	}
+
+	//return colour based on restyle
+	vec2 coords = getTextureCoordinates(restyle, 15);
+	return texture2D(uStateStyleSampler, coords);
+}
 
 void main(void) {
   int state = int(floor(aState[0] + 0.5));
@@ -38,7 +62,9 @@ void main(void) {
     return;
   }
 
-  vec4 baseColor = vec4(uHighlightColour.rgb, uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin);
+
+
+  vec4 baseColor = vec4(getColor().rgb, uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin);
 
   vFrontColor = baseColor;
   vBackColor = baseColor;
