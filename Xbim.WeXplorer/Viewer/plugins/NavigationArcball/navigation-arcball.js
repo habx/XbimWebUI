@@ -34,6 +34,11 @@ var NavigationArcball = /** @class */ (function () {
         this._maxPitch = Math.PI / 2;
         this._pitch = 0;
         this._yaw = 0;
+        this._rotating = false;
+        this._rotationSpeed = Math.PI / 20;
+        this._interactionTimeout = 4000;
+        this._lastFrameTime = Date.now();
+        this._lastInteraction = 0;
         this._dirty = true;
     }
     // called by the viewer when plugin is added
@@ -121,7 +126,40 @@ var NavigationArcball = /** @class */ (function () {
         this._viewer._distance = this._distance;
         this._dirty = true;
     };
+    Object.defineProperty(NavigationArcball.prototype, "rotating", {
+        get: function () {
+            return this._rotating;
+        },
+        set: function (value) {
+            this._rotating = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NavigationArcball.prototype, "rotationSpeed", {
+        get: function () {
+            return this._rotationSpeed;
+        },
+        set: function (value) {
+            this._rotationSpeed = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(NavigationArcball.prototype, "interactionTimeout", {
+        get: function () {
+            return this._interactionTimeout;
+        },
+        set: function (value) {
+            this._interactionTimeout = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
     NavigationArcball.prototype._updateCamera = function () {
+        var dT = Date.now() - this._lastFrameTime;
+        this._lastFrameTime += dT;
+        var timeSinceLastInteraction = this._lastFrameTime - this._lastInteraction;
         // In case either property was updated on the viewer setCameraTarget or zoomTo
         // Called before the check on _isDirty in order to set _isDirty if the properties changed
         if (this._viewer._distance !== this._distance) {
@@ -129,6 +167,9 @@ var NavigationArcball = /** @class */ (function () {
         }
         if (this._viewer._origin !== this._origin) {
             this.origin = this._viewer._origin;
+        }
+        if (this._rotating && timeSinceLastInteraction > 4000) {
+            this._setYaw(this._yaw += (dT / 1000) * this._rotationSpeed);
         }
         if (!this._dirty)
             return;
@@ -147,6 +188,7 @@ var NavigationArcball = /** @class */ (function () {
         var viewer = this._viewer;
         if (!viewer._handles || !viewer._handles[0])
             return;
+        this._lastInteraction = Date.now();
         switch (type) {
             case 'free-orbit':
             case 'fixed-orbit':

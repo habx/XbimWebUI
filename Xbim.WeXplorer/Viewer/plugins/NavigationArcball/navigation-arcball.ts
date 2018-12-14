@@ -124,9 +124,43 @@ export class NavigationArcball implements IPlugin
         this._dirty = true;
     }
 
+    private _rotating: boolean = false;
+    public set rotating(value: boolean) {
+        this._rotating = value;
+    }
+    public get rotating() {
+        return this._rotating;
+    }
+
+    private _rotationSpeed: number = Math.PI / 20;
+    public set rotationSpeed(value: number) {
+        this._rotationSpeed = value;
+    }
+    public get rotationSpeed() {
+        return this._rotationSpeed;
+    }
+
+    private _interactionTimeout = 4000;
+    public set interactionTimeout(value: number) {
+        this._interactionTimeout = value;
+    }
+    public get interactionTimeout() {
+        return this._interactionTimeout;
+    }
+
+
+    private _lastFrameTime = Date.now();
+
+    private _lastInteraction = 0;
+
     private _dirty = true;
 
     private _updateCamera() {
+        const dT = Date.now() - this._lastFrameTime;
+        this._lastFrameTime += dT;
+
+        const timeSinceLastInteraction = this._lastFrameTime - this._lastInteraction;
+
         // In case either property was updated on the viewer setCameraTarget or zoomTo
         // Called before the check on _isDirty in order to set _isDirty if the properties changed
         if (this._viewer._distance !== this._distance) {
@@ -135,6 +169,10 @@ export class NavigationArcball implements IPlugin
 
         if (this._viewer._origin !== this._origin) {
             this.origin = this._viewer._origin;
+        }
+
+        if (this._rotating && timeSinceLastInteraction > 4000) {
+            this._setYaw(this._yaw += (dT / 1000) * this._rotationSpeed);
         }
 
         if (!this._dirty) return;
@@ -159,6 +197,8 @@ export class NavigationArcball implements IPlugin
         const viewer = this._viewer
 
         if (!viewer._handles || !viewer._handles[0]) return;
+
+        this._lastInteraction = Date.now();
         
         switch (type) {
             case 'free-orbit':

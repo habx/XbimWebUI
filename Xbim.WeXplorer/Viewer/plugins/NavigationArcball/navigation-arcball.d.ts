@@ -42,6 +42,14 @@ export declare class NavigationArcball implements IPlugin {
     origin: number[];
     private _distance;
     private _setDistance;
+    private _rotating;
+    rotating: boolean;
+    private _rotationSpeed;
+    rotationSpeed: number;
+    private _interactionTimeout;
+    interactionTimeout: number;
+    private _lastFrameTime;
+    private _lastInteraction;
     private _dirty;
     private _updateCamera;
     private navigate;
