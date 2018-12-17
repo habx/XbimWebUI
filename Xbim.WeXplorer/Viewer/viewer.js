@@ -378,6 +378,18 @@ var Viewer = /** @class */ (function () {
         this.forHandleOrAll(function (h) { h.setState(state, target); }, modelId);
         this._stylingChanged = true;
     };
+    /**
+    * You can use this function to change state of products in the model. State has to have one of values from {@link xState xState} enumeration.
+    * Target is either enumeration from {@link xProductType xProductType} or array of product IDs. If you specify type it will effect all elements of the type.
+    *
+    * @function Viewer#setState
+    * @param {State} state - One of {@link State State} enumeration values.
+    * @param {Number} [modelId] - Id of the model
+    * @param {Number[] | Number} target - Target of the change. It can either be array of product IDs or product type from {@link xProductType xProductType}.
+    */
+    Viewer.prototype.setPickable = function (target) {
+        this._pickableProducts = typeof target === 'number' ? [target] : target;
+    };
     Viewer.prototype.forHandleOrAll = function (callback, modelId) {
         if (typeof (modelId) !== 'undefined') {
             var handle = this._handles.filter(function (h, i, a) {
@@ -1528,6 +1540,7 @@ var Viewer = /** @class */ (function () {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         //set uniform for colour coding
         gl.uniform1i(this._colorCodingUniformPointer, ColourCoding.PRODUCTS);
+        var pickableProducts = this._pickableProducts;
         //render colour coded image using latest buffered data
         this._handles.forEach(function (handle) {
             if (!handle.stopped && handle.pickable) {
@@ -1535,7 +1548,12 @@ var Viewer = /** @class */ (function () {
                     gl.uniform1i(_this._colorCodingUniformPointer, handle.id);
                 }
                 handle.setActive(_this._pointers);
-                handle.draw();
+                if (!pickableProducts || !pickableProducts.length) {
+                    handle.draw();
+                }
+                else {
+                    pickableProducts.forEach(function (id) { return handle.drawProduct(id); });
+                }
             }
         });
         //call all after-drawId plugins
@@ -1577,6 +1595,30 @@ var Viewer = /** @class */ (function () {
         else {
             return null;
         }
+    };
+    Viewer.prototype.getProductScreenSpacePosition = function (productId, modelId) {
+        var bbox = this.forHandleOrAll(function (handle) {
+            var map = handle.getProductMap(productId);
+            if (map) {
+                return map.bBox;
+            }
+        }, modelId);
+        if (!bbox) {
+            return null;
+        }
+        var worldPosition = [
+            bbox[0] + bbox[3] / 2.0,
+            bbox[1] + bbox[4] / 2.0,
+            bbox[2] + bbox[5] / 2.0,
+        ];
+        var viewProjection = mat4_1.mat4.multiply(mat4_1.mat4.create(), this._pMatrix, this.mvMatrix);
+        var vector = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, viewProjection);
+        var xRatio = (vector[0] + 1.0) * 0.5;
+        var yRatio = (vector[1] + 1.0) * 0.5;
+        return [
+            this._width * xRatio,
+            this._height * (1.0 - yRatio),
+        ];
     };
     /**
     * Use this function to start animation of the model. If you start animation before geometry is loaded it will wait for content to render it.

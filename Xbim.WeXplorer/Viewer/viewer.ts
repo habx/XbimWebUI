@@ -316,6 +316,8 @@ export class Viewer {
     public _pMatrix: any;
     private _pointers: ModelPointers;
 
+    private _pickableProducts: number[];
+
     /**
     * This is a static function which should always be called before Viewer is instantiated.
     * It will check all prerequisites of the viewer and will report all issues. If Prerequisities.errors contain
@@ -468,6 +470,19 @@ export class Viewer {
 
         this.forHandleOrAll((h: ModelHandle) => { h.setState(state, target); }, modelId);
         this._stylingChanged = true;
+    }
+
+    /**
+    * You can use this function to change state of products in the model. State has to have one of values from {@link xState xState} enumeration. 
+    * Target is either enumeration from {@link xProductType xProductType} or array of product IDs. If you specify type it will effect all elements of the type.
+    *
+    * @function Viewer#setState
+    * @param {State} state - One of {@link State State} enumeration values.
+    * @param {Number} [modelId] - Id of the model
+    * @param {Number[] | Number} target - Target of the change. It can either be array of product IDs or product type from {@link xProductType xProductType}.
+    */
+    public setPickable(target: number | number[]) {
+        this._pickableProducts = typeof target === 'number' ? [target] : target
     }
 
     private forHandleOrAll<T>(callback: (h: ModelHandle) => T, modelId: number): T {
@@ -1809,6 +1824,8 @@ export class Viewer {
         //set uniform for colour coding
         gl.uniform1i(this._colorCodingUniformPointer, ColourCoding.PRODUCTS);
 
+        const pickableProducts = this._pickableProducts
+
         //render colour coded image using latest buffered data
         this._handles.forEach((handle) => {
             if (!handle.stopped && handle.pickable) {
@@ -1816,7 +1833,11 @@ export class Viewer {
                     gl.uniform1i(this._colorCodingUniformPointer, handle.id);
                 }
                 handle.setActive(this._pointers);
-                handle.draw();
+                if (!pickableProducts || !pickableProducts.length) {
+                    handle.draw();
+                } else {
+                    pickableProducts.forEach(id => handle.drawProduct(id))
+                }
             }
         });
 
@@ -1865,6 +1886,37 @@ export class Viewer {
         } else {
             return null;
         }
+    }
+
+    getProductScreenSpacePosition(productId: number, modelId?: number) {
+        const bbox = this.forHandleOrAll((handle: ModelHandle) => {
+            let map = handle.getProductMap(productId);
+            if (map) {
+                return map.bBox;
+            }
+        }, modelId);
+
+        if(!bbox) {
+            return null;
+        }
+
+        const worldPosition = [
+            bbox[0] + bbox[3] / 2.0,
+            bbox[1] + bbox[4] / 2.0,
+            bbox[2] + bbox[5] / 2.0,
+        ];
+        
+        const viewProjection = mat4.multiply(mat4.create(), this._pMatrix, this.mvMatrix)
+        
+        const vector = vec3.transformMat4(vec3.create(), worldPosition, viewProjection);
+
+        const xRatio = (vector[0] + 1.0) * 0.5;
+        const yRatio = (vector[1] + 1.0) * 0.5;
+
+        return [
+            this._width * xRatio,
+            this._height * (1.0 - yRatio),
+        ];
     }
 
     /**

@@ -88,6 +88,7 @@ export declare class Viewer {
     private _fpt;
     _pMatrix: any;
     private _pointers;
+    private _pickableProducts;
     /**
     * This is a static function which should always be called before Viewer is instantiated.
     * It will check all prerequisites of the viewer and will report all issues. If Prerequisities.errors contain
@@ -155,6 +156,16 @@ export declare class Viewer {
     * @param {Number[] | Number} target - Target of the change. It can either be array of product IDs or product type from {@link xProductType xProductType}.
     */
     setState(state: State, target: number | number[], modelId?: number): void;
+    /**
+    * You can use this function to change state of products in the model. State has to have one of values from {@link xState xState} enumeration.
+    * Target is either enumeration from {@link xProductType xProductType} or array of product IDs. If you specify type it will effect all elements of the type.
+    *
+    * @function Viewer#setState
+    * @param {State} state - One of {@link State State} enumeration values.
+    * @param {Number} [modelId] - Id of the model
+    * @param {Number[] | Number} target - Target of the change. It can either be array of product IDs or product type from {@link xProductType xProductType}.
+    */
+    setPickable(target: number | number[]): void;
     private forHandleOrAll;
     /**
      * Gets all product IDs of certain type
@@ -332,6 +343,7 @@ export declare class Viewer {
     show(type: 'top' | 'bottom' | 'front' | 'back' | 'left' | 'right'): void;
     error(msg: any): void;
     getID(x: any, y: any, modelId?: boolean): number;
+    getProductScreenSpacePosition(productId: number, modelId?: number): number[];
     /**
     * Use this function to start animation of the model. If you start animation before geometry is loaded it will wait for content to render it.
     * This function is bound to browser framerate of the screen so it will stop consuming any resources if you switch to another tab.
