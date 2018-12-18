@@ -167,7 +167,6 @@
     <Content Include="jsdoc.config.json" />
     <Content Include="build_before.bat" />
     <Content Include="tests\data\envelop.wexbim" />
-    <TypeScriptCompile Include="Viewer\matrix\vec4.ts" />
     <TypeScriptCompile Include="Viewer\plugins\NavigationArcball\navigation-arcball.ts" />
     <TypeScriptCompile Include="Viewer\plugins\NavigationXYPlane\navigation-xy-plane.ts" />
     <Content Include="Viewer\plugins\PulseHighlight\pulse_fshader.c" />

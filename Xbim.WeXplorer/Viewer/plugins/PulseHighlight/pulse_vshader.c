@@ -1,5 +1,6 @@
 attribute highp vec3 aPosition;
 attribute highp vec2 aState;
+attribute highp vec2 aNormal;
 
 //transformations (model view and perspective matrix)
 uniform mat4 uMVMatrix;
@@ -47,6 +48,19 @@ vec4 getColor() {
 	return texture2D(uStateStyleSampler, coords);
 }
 
+vec3 getNormal() {
+	float U = aNormal[0];
+	float V = aNormal[1];
+	float PI = 3.1415926535897932384626433832795;
+	float lon = U / 252.0 * 2.0 * PI;
+	float lat = V / 252.0 * PI;
+
+	float x = sin(lon) * sin(lat);
+	float z = cos(lon) * sin(lat);
+	float y = cos(lat);
+	return normalize(vec3(x, y, z));
+}
+
 void main(void) {
   int state = int(floor(aState[0] + 0.5));
   vDiscard = 0.0;
@@ -62,9 +76,13 @@ void main(void) {
     return;
   }
 
+  vec3 normal = getNormal();
+  float normalRatio = 0.5 + 0.5 * dot(normal, vec3(0.0, 0.0, 1.0));
 
-
-  vec4 baseColor = vec4(getColor().rgb, uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin);
+  vec4 baseColor = vec4(
+	  getColor().rgb * normalRatio, 
+	  uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin
+  );
 
   vFrontColor = baseColor;
   vBackColor = baseColor;

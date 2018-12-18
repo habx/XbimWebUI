@@ -2066,7 +2066,7 @@ your custom colour which you have defined in <a href="Viewer.html#defineStyle">d
     
         
 
-        <h4 class="name" id="load"><span class="type-signature"></span>load<span class="signature">(loaderUrl, model, tag)</span><span class="type-signature"></span></h4>
+        <h4 class="name" id="load"><span class="type-signature"></span>load<span class="signature">(model, tag)</span><span class="type-signature"></span></h4>
 
         
     
@@ -2075,10 +2075,11 @@ your custom colour which you have defined in <a href="Viewer.html#defineStyle">d
 
     
     <div class="description">
-        <p>This method uses WebWorker if available to load the model into this viewer.
-Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data. Any other type of argument will throw an exception.
+        <p>This method is used to load model data into viewer. Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data. Any other type of argument will throw an exception.
+Region extend is determined based on the region of the model
+Default view if 'front'. If you want to define different view you have to set it up in handler of <a href="Viewer.html#event:loaded">loaded</a> event. <br>
 You can load more than one model if they occupy the same space, use the same scale and have unique product IDs. Duplicated IDs won't affect
-visualization itself but would cause unexpected user interaction (picking, zooming, ...).</p>
+visualization itself but would cause unexpected user interaction (picking, zooming, ...)</p>
     </div>
     
 
@@ -2110,29 +2111,6 @@ visualization itself but would cause unexpected user interaction (picking, zoomi
     </thead>
 
     <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>loaderUrl</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">String</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last"><p>Url of the 'xbim-geometry-loader.js' script which will be called as a worker</p></td>
-        </tr>
-
     
 
         <tr>
@@ -2255,7 +2233,7 @@ visualization itself but would cause unexpected user interaction (picking, zoomi
     
         
 
-        <h4 class="name" id="load"><span class="type-signature"></span>load<span class="signature">(model, tag)</span><span class="type-signature"></span></h4>
+        <h4 class="name" id="load"><span class="type-signature"></span>load<span class="signature">(loaderUrl, model, tag)</span><span class="type-signature"></span></h4>
 
         
     
@@ -2264,11 +2242,10 @@ visualization itself but would cause unexpected user interaction (picking, zoomi
 
     
     <div class="description">
-        <p>This method is used to load model data into viewer. Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data. Any other type of argument will throw an exception.
-Region extend is determined based on the region of the model
-Default view if 'front'. If you want to define different view you have to set it up in handler of <a href="Viewer.html#event:loaded">loaded</a> event. <br>
+        <p>This method uses WebWorker if available to load the model into this viewer.
+Model has to be either URL to wexBIM file or Blob or File representing wexBIM file binary data. Any other type of argument will throw an exception.
 You can load more than one model if they occupy the same space, use the same scale and have unique product IDs. Duplicated IDs won't affect
-visualization itself but would cause unexpected user interaction (picking, zooming, ...)</p>
+visualization itself but would cause unexpected user interaction (picking, zooming, ...).</p>
     </div>
     
 
@@ -2300,6 +2277,29 @@ visualization itself but would cause unexpected user interaction (picking, zoomi
     </thead>
 
     <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>loaderUrl</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Url of the 'xbim-geometry-loader.js' script which will be called as a worker</p></td>
+        </tr>
+
     
 
         <tr>
@@ -3632,6 +3632,213 @@ if you call functions like show() or <a href="Viewer.html#zoomTo">zoomTo()</a>.<
 </dl>
 
         
+
+    
+</dd>
+
+        
+            
+<dt>
+    
+        
+
+        <h4 class="name" id="setState"><span class="type-signature"></span>setState<span class="signature">(state, modelId<span class="signature-attributes">opt</span>, target)</span><span class="type-signature"></span></h4>
+
+        
+    
+</dt>
+<dd>
+
+    
+    <div class="description">
+        <p>You can use this function to change state of products in the model. State has to have one of values from xState enumeration.
+Target is either enumeration from xProductType or array of product IDs. If you specify type it will effect all elements of the type.</p>
+    </div>
+    
+
+    
+
+    
+
+    
+
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>state</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#State">State</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>One of <a href="global.html#State">State</a> enumeration values.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>modelId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Id of the model</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>target</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+|
+
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>Target of the change. It can either be array of product IDs or product type from xProductType.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+    
+
+    
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
 
     
 </dd>
@@ -5624,7 +5831,7 @@ This ID can later be used to unload or temporarily stop the model.</p>
 
             
 
-            <td class="description last"><p>product ID of the element or -1 if there wasn't any product under mouse</p></td>
+            <td class="description last"><p>product ID of the element or null if there wasn't any product under mouse</p></td>
         </tr>
 
     
@@ -5647,7 +5854,7 @@ This ID can later be used to unload or temporarily stop the model.</p>
 
             
 
-            <td class="description last"><p>model ID of the element or -1 if there wasn't any product under mouse</p></td>
+            <td class="description last"><p>model ID</p></td>
         </tr>
 
     
@@ -5786,7 +5993,7 @@ This ID can later be used to unload or temporarily stop the model.</p>
 
             
 
-            <td class="description last"><p>product ID of the element or null if there wasn't any product under mouse</p></td>
+            <td class="description last"><p>product ID of the element or -1 if there wasn't any product under mouse</p></td>
         </tr>
 
     
@@ -5809,7 +6016,7 @@ This ID can later be used to unload or temporarily stop the model.</p>
 
             
 
-            <td class="description last"><p>model ID</p></td>
+            <td class="description last"><p>model ID of the element or -1 if there wasn't any product under mouse</p></td>
         </tr>
 
     
@@ -6051,7 +6258,7 @@ This ID can later be used to unload or temporarily stop the model.</p>
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Thu Dec 13 2018 15:41:51 GMT+0100 (GMT+01:00)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0</a> on Tue Dec 18 2018 14:26:52 GMT+0100 (GMT+01:00)
 </footer>
 
 <script> prettyPrint(); </script>

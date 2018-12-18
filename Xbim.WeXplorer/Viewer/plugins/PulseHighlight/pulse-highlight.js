@@ -16,21 +16,10 @@ var PulseHighlight = /** @class */ (function () {
     */
     function PulseHighlight() {
         this._initialized = false;
-        /**
-        * Min alpha of the pulse effect
-        * @member {Number} xPulseHighlight#pulseAlphaMin
-        */
-        this.pulseAlphaMin = 0.3;
-        /**
-        * Max alpha of the pulse effect
-        * @member {Number} xPulseHighlight#pulseAlphaMin
-        */
-        this.pulseAlphaMax = 0.6;
-        /**
-        * Period of the pulse (in seconds)
-        * @member {Number} xPulseHighlight#highlighting
-        */
-        this.period = 1.5;
+        this._period = 1500;
+        this._periodOffset = 0;
+        this._alphaMin = 0.3;
+        this._alphaMax = 0.6;
         this.drawHandle = function (handle) {
             var gl = this.viewer.gl;
             if (handle.stopped)
@@ -40,6 +29,8 @@ var PulseHighlight = /** @class */ (function () {
             gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
             gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
             gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
+            gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
+            gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
             var spans = [];
             var currentSpan = [];
             for (var i = 0; i < handle.model.states.length; i += 2) {
@@ -96,6 +87,53 @@ var PulseHighlight = /** @class */ (function () {
             }
         };
     }
+    Object.defineProperty(PulseHighlight.prototype, "alphaMin", {
+        /**
+        * Min alpha of the pulse effect
+        * @member {Number} PulseHighlight#alphaMin
+        */
+        get: function () {
+            return this._alphaMin;
+        },
+        set: function (value) {
+            this._alphaMin = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(PulseHighlight.prototype, "alphaMax", {
+        /**
+        * Max alpha of the pulse effect
+        * @member {Number} PulseHighlight#alphaMax
+        */
+        get: function () {
+            return this._alphaMax;
+        },
+        set: function (value) {
+            this._alphaMax = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(PulseHighlight.prototype, "period", {
+        /**
+        * Period of the pulse (in seconds)
+        * @member {Number} PulseHighlight#period
+        */
+        get: function () {
+            return this._period / 1000;
+        },
+        set: function (value) {
+            var newPeriod = value * 1000;
+            this._periodOffset = ((((Date.now() + this._periodOffset) % this._period) /
+                this._period) -
+                ((Date.now() % newPeriod) /
+                    newPeriod)) * newPeriod;
+            this._period = newPeriod;
+        },
+        enumerable: true,
+        configurable: true
+    });
     PulseHighlight.prototype.init = function (viewer) {
         var self = this;
         this.viewer = viewer;
@@ -103,9 +141,6 @@ var PulseHighlight = /** @class */ (function () {
         //create own shader
         this._shader = null;
         this._initShader();
-        this._alphaMin = this.pulseAlphaMin;
-        this._alphaMax = this.pulseAlphaMax;
-        this._period = this.period * 1000;
         this._highlightingColor = this.viewer.highlightingColour;
         this.viewer.highlightingColour = [0.0, 0.0, 0.0, 0.0];
         //set own shader for init
@@ -124,11 +159,13 @@ var PulseHighlight = /** @class */ (function () {
         this._highlightingColourUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColour");
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shader, 'uStateStyleSampler');
         // Base attributes
-        this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition"),
-            this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState"),
-            //enable vertex attributes arrays
-            gl.enableVertexAttribArray(this._positionAttrPointer);
+        this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition");
+        this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState");
+        this._normalAttrPointer = gl.getAttribLocation(this._shader, "aNormal");
+        //enable vertex attributes arrays
+        gl.enableVertexAttribArray(this._positionAttrPointer);
         gl.enableVertexAttribArray(this._stateAttrPointer);
+        gl.enableVertexAttribArray(this._normalAttrPointer);
         //reset original shader program
         gl.useProgram(this.viewer._shaderProgram);
         this._initialized = true;
@@ -176,7 +213,7 @@ var PulseHighlight = /** @class */ (function () {
         ]));
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
-        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % this._period) / this._period));
+        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
         gl.disable(gl.DEPTH_TEST);
         this.viewer._handles.forEach(this.drawHandle.bind(this));
         gl.enable(gl.DEPTH_TEST);

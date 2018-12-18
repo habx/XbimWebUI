@@ -22,30 +22,9 @@ export class PulseHighlight implements IPlugin {
     }
 
     private _initialized: boolean = false;
-
-    /**
-    * Min alpha of the pulse effect
-    * @member {Number} xPulseHighlight#pulseAlphaMin
-    */
-    public pulseAlphaMin = 0.3;
-
-    /**
-    * Max alpha of the pulse effect
-    * @member {Number} xPulseHighlight#pulseAlphaMin
-    */
-    public pulseAlphaMax = 0.6;
-
-    /**
-    * Period of the pulse (in seconds)
-    * @member {Number} xPulseHighlight#highlighting
-    */
-    public period = 1.5;
-
+    
     private viewer: Viewer;
     private _shader: WebGLProgram;
-    private _alphaMin: number;
-    private _alphaMax: number;
-    private _period: number;
     private _highlightingColor: number[];
 
     private _alphaMinUniformPointer: WebGLUniformLocation;
@@ -64,6 +43,56 @@ export class PulseHighlight implements IPlugin {
     private _positionAttrPointer: number;
     private _stateAttrPointer: number;
 
+    private _period: number = 1500;
+    private _periodOffset: number = 0;
+    private _alphaMin: number = 0.3;
+    private _alphaMax: number = 0.6;
+
+    /**
+    * Min alpha of the pulse effect
+    * @member {Number} PulseHighlight#alphaMin
+    */
+    public get alphaMin() {
+        return this._alphaMin;
+    }
+    public set alphaMin(value: number) {
+        this._alphaMin = value;
+    }
+
+    /**
+    * Max alpha of the pulse effect
+    * @member {Number} PulseHighlight#alphaMax
+    */
+    public get alphaMax() {
+        return this._alphaMax;
+    }
+    public set alphaMax(value: number) {
+        this._alphaMax = value;
+    }
+
+    /**
+    * Period of the pulse (in seconds)
+    * @member {Number} PulseHighlight#period
+    */
+    public get period() {
+        return this._period / 1000;
+    }
+    public set period(value: number) {
+        const newPeriod = value * 1000;
+        this._periodOffset = (
+            (
+                ((Date.now() + this._periodOffset) % this._period) /
+                this._period
+            ) -
+            (
+                (Date.now() % newPeriod) /
+                newPeriod
+            )
+        ) * newPeriod;
+
+        this._period = newPeriod;
+    }
+
     public init(viewer: Viewer) {
         var self = this;
         this.viewer = viewer;
@@ -72,11 +101,7 @@ export class PulseHighlight implements IPlugin {
         //create own shader
         this._shader = null;
         this._initShader();
-
-        this._alphaMin = this.pulseAlphaMin;
-        this._alphaMax = this.pulseAlphaMax;
-        this._period = this.period * 1000;
-
+        
         this._highlightingColor = this.viewer.highlightingColour;
 
         this.viewer.highlightingColour = [0.0, 0.0, 0.0, 0.0];
@@ -100,12 +125,14 @@ export class PulseHighlight implements IPlugin {
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shader, 'uStateStyleSampler');
 
         // Base attributes
-        this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition"),
-            this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState"),
+        this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition");
+        this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState");
+        this._normalAttrPointer = gl.getAttribLocation(this._shader, "aNormal");
 
-            //enable vertex attributes arrays
-            gl.enableVertexAttribArray(this._positionAttrPointer);
+        //enable vertex attributes arrays
+        gl.enableVertexAttribArray(this._positionAttrPointer);
         gl.enableVertexAttribArray(this._stateAttrPointer);
+        gl.enableVertexAttribArray(this._normalAttrPointer);
 
         //reset original shader program
         gl.useProgram(this.viewer._shaderProgram);
@@ -176,7 +203,7 @@ export class PulseHighlight implements IPlugin {
 
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
-        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * (Date.now() % this._period) / this._period));
+        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
 
         gl.disable(gl.DEPTH_TEST);
         this.viewer._handles.forEach(this.drawHandle.bind(this))
@@ -194,6 +221,9 @@ export class PulseHighlight implements IPlugin {
 
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
         gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
+        gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
         const spans = []
 

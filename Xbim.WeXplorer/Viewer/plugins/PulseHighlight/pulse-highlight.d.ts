@@ -13,26 +13,8 @@ export declare class PulseHighlight implements IPlugin {
     */
     constructor();
     private _initialized;
-    /**
-    * Min alpha of the pulse effect
-    * @member {Number} xPulseHighlight#pulseAlphaMin
-    */
-    pulseAlphaMin: number;
-    /**
-    * Max alpha of the pulse effect
-    * @member {Number} xPulseHighlight#pulseAlphaMin
-    */
-    pulseAlphaMax: number;
-    /**
-    * Period of the pulse (in seconds)
-    * @member {Number} xPulseHighlight#highlighting
-    */
-    period: number;
     private viewer;
     private _shader;
-    private _alphaMin;
-    private _alphaMax;
-    private _period;
     private _highlightingColor;
     private _alphaMinUniformPointer;
     private _alphaMaxUniformPointer;
@@ -47,6 +29,25 @@ export declare class PulseHighlight implements IPlugin {
     private _stateStyleSamplerUniform;
     private _positionAttrPointer;
     private _stateAttrPointer;
+    private _period;
+    private _periodOffset;
+    private _alphaMin;
+    private _alphaMax;
+    /**
+    * Min alpha of the pulse effect
+    * @member {Number} PulseHighlight#alphaMin
+    */
+    alphaMin: number;
+    /**
+    * Max alpha of the pulse effect
+    * @member {Number} PulseHighlight#alphaMax
+    */
+    alphaMax: number;
+    /**
+    * Period of the pulse (in seconds)
+    * @member {Number} PulseHighlight#period
+    */
+    period: number;
     init(viewer: Viewer): void;
     onBeforeDraw(): void;
     onBeforePick(id: number): boolean;
