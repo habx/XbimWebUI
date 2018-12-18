@@ -1889,9 +1889,12 @@ export class Viewer {
     }
 
     getProductScreenSpacePosition(productId: number, modelId?: number) {
+        let meter = 1;
+
         const bbox = this.forHandleOrAll((handle: ModelHandle) => {
             let map = handle.getProductMap(productId);
             if (map) {
+                meter = handle.model.meter;
                 return map.bBox;
             }
         }, modelId);
@@ -1918,7 +1921,7 @@ export class Viewer {
         return [
             this._width * xRatio,
             this._height * (1.0 - yRatio),
-            -z,
+            -z / meter,
         ];
     }
 

@@ -1597,9 +1597,11 @@ var Viewer = /** @class */ (function () {
         }
     };
     Viewer.prototype.getProductScreenSpacePosition = function (productId, modelId) {
+        var meter = 1;
         var bbox = this.forHandleOrAll(function (handle) {
             var map = handle.getProductMap(productId);
             if (map) {
+                meter = handle.model.meter;
                 return map.bBox;
             }
         }, modelId);
@@ -1619,7 +1621,7 @@ var Viewer = /** @class */ (function () {
         return [
             this._width * xRatio,
             this._height * (1.0 - yRatio),
-            -z,
+            -z / meter,
         ];
     };
     /**
