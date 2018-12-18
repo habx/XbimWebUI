@@ -1913,9 +1913,12 @@ export class Viewer {
         const xRatio = (vector[0] + 1.0) * 0.5;
         const yRatio = (vector[1] + 1.0) * 0.5;
 
+        const z = vec3.transformMat4(vec3.create(), worldPosition, this.mvMatrix)[2]
+        
         return [
             this._width * xRatio,
             this._height * (1.0 - yRatio),
+            -z,
         ];
     }
 

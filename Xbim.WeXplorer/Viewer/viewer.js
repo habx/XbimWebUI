@@ -1615,9 +1615,11 @@ var Viewer = /** @class */ (function () {
         var vector = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, viewProjection);
         var xRatio = (vector[0] + 1.0) * 0.5;
         var yRatio = (vector[1] + 1.0) * 0.5;
+        var z = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, this.mvMatrix)[2];
         return [
             this._width * xRatio,
             this._height * (1.0 - yRatio),
+            -z,
         ];
     };
     /**
