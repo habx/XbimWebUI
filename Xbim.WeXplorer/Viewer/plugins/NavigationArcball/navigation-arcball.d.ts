@@ -41,6 +41,7 @@ export declare class NavigationArcball implements IPlugin {
     private _origin;
     origin: number[];
     private _distance;
+    distance: number;
     private _setDistance;
     private _rotating;
     rotating: boolean;

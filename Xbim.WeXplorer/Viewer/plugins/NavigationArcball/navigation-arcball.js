@@ -116,6 +116,26 @@ var NavigationArcball = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(NavigationArcball.prototype, "distance", {
+        get: function () {
+            var viewer = this._viewer;
+            var meter = 1;
+            viewer._handles.forEach(function (handle) {
+                meter = handle.model.meter;
+            }, viewer);
+            return this._distance / meter;
+        },
+        set: function (value) {
+            var viewer = this._viewer;
+            var meter = 1;
+            viewer._handles.forEach(function (handle) {
+                meter = handle.model.meter;
+            }, viewer);
+            this._setDistance(meter * value);
+        },
+        enumerable: true,
+        configurable: true
+    });
     NavigationArcball.prototype._setDistance = function (value) {
         var viewer = this._viewer;
         var meter = 1;

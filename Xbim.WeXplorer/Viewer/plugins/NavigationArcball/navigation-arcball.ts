@@ -110,6 +110,27 @@ export class NavigationArcball implements IPlugin
     } 
 
     private _distance: number;
+    public set distance(value: number) {
+        const viewer = this._viewer
+        let meter = 1;
+
+        viewer._handles.forEach(function (handle) {
+            meter = handle.model.meter
+        }, viewer);
+
+        this._setDistance(meter * value)
+    }
+    public get distance() {
+        const viewer = this._viewer
+        let meter = 1;
+
+        viewer._handles.forEach(function (handle) {
+            meter = handle.model.meter
+        }, viewer);
+
+        return this._distance / meter;
+    }
+
     private _setDistance(value: number) {
         const viewer = this._viewer
         let meter = 1;
