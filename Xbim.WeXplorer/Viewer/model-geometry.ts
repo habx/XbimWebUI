@@ -229,6 +229,10 @@ export class ModelGeometry {
 
                     const transformedVertex = vec3.transformMat4(vec3.create(), vertex, shape.transformation);
 
+                    if (map.type === typeEnum.IFCSLAB) {
+                        transformedVertex[2] += this.meter * 0.01
+                    }
+
                     this.vertices[3 * iIndex] = transformedVertex[0];
                     this.vertices[3 * iIndex + 1] = transformedVertex[1];
                     this.vertices[3 * iIndex + 2] = transformedVertex[2];

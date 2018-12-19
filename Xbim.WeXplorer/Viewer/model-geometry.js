@@ -194,6 +194,9 @@ var ModelGeometry = /** @class */ (function () {
                     vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                     vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                     var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                    if (map.type === typeEnum.IFCSLAB) {
+                        transformedVertex[2] += _this.meter * 0.01;
+                    }
                     _this.vertices[3 * iIndex] = transformedVertex[0];
                     _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                     _this.vertices[3 * iIndex + 2] = transformedVertex[2];
