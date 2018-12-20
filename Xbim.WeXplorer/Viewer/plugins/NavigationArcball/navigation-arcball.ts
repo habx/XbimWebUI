@@ -8,6 +8,78 @@ import { ModelHandle } from '../../model-handle';
 const clamp = (value, min, max) => Math.max(Math.min(0.9999 * max, value), 1.0001 * min);
 const degToRad = deg => deg * (Math.PI / 180.0);
 
+const lerp = (a, b, r) => a + ((b - a) * r)
+
+const interpolateAngle = (a, b, t) => {
+    const PI_2 = Math.PI * 2
+
+    let fromAngle = (a + PI_2) % PI_2;
+    let toAngle = (b + PI_2) % PI_2;
+
+    const diff = Math.abs(fromAngle - toAngle);
+
+    if (diff < Math.PI) {
+        return lerp(fromAngle, toAngle, t);
+    } else {
+        if (fromAngle > toAngle) {
+            fromAngle = fromAngle - PI_2;
+            return lerp(fromAngle, toAngle, t);
+        }
+        else if (toAngle > fromAngle) {
+            toAngle = toAngle - PI_2;
+            return lerp(fromAngle, toAngle, t);
+        }
+    }  
+}
+
+const mergeBboxes = bboxes => {
+    const bbox = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
+
+    bboxes.forEach(b => {
+        if (!b) {
+            return;
+        }
+
+        const bboxTop = [
+            bbox[0] + bbox[3],
+            bbox[1] + bbox[4],
+            bbox[2] + bbox[5],
+        ];
+
+        if (isNaN(bboxTop[0])) {
+            bboxTop[0] = -Infinity;
+        }
+        if (isNaN(bboxTop[1])) {
+            bboxTop[1] = -Infinity;
+        }
+        if (isNaN(bboxTop[2])) {
+            bboxTop[2] = -Infinity;
+        }
+
+        const bTop = [
+            b[0] + b[3],
+            b[1] + b[4],
+            b[2] + b[5],
+        ];
+
+        const top = [
+            Math.max(bboxTop[0], bTop[0]),
+            Math.max(bboxTop[1], bTop[1]),
+            Math.max(bboxTop[2], bTop[2]),
+        ];
+
+        bbox[0] = Math.min(bbox[0], b[0]);
+        bbox[1] = Math.min(bbox[1], b[1]);
+        bbox[2] = Math.min(bbox[2], b[2]);
+
+        bbox[3] = top[0] - bbox[0];
+        bbox[4] = top[1] - bbox[1];
+        bbox[5] = top[2] - bbox[2];
+    })
+
+    return bbox;
+}
+
 export class NavigationArcball implements IPlugin
 {
     // original navigation function
@@ -91,26 +163,56 @@ export class NavigationArcball implements IPlugin
         this._dirty = true;
     }
 
+    private _targetPitch: number = 0;
     private _pitch: number = 0;
     private _setPitch(value: number) {
-        this._pitch = clamp(value, this._minPitch, this._maxPitch)
+        this._pitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+        this._setTargetPitch(value);
+        this._dirty = true;
+    };
+    private _setTargetPitch(value: number) {
+        this._targetPitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+
+        if (this._targetPitch - this._pitch > Math.PI) {
+            this._targetPitch = - (Math.PI * 2) - this._targetPitch;
+        }
+
         this._dirty = true;
     };
 
+    private _targetYaw: number = 0;
     private _yaw: number = 0;
     private _setYaw(value: number) {
-        this._yaw = value
+        this._yaw = value % (Math.PI * 2);
+        this._setTargetYaw(value);
+        this._dirty = true;
+    };
+    private _setTargetYaw(value: number) {
+        this._targetYaw = value % (Math.PI * 2);
+
+        if (this._targetYaw - this._yaw > Math.PI) {
+            this._targetYaw = - (Math.PI * 2) - this._targetYaw;
+        }
+
         this._dirty = true;
     };
 
+    private _targetOrigin: number[];
     private _origin: number[];
     public set origin(value: number[]) {
         this._origin = value;
+        this._targetOrigin = value;
         this._viewer._origin = value;
 
         this._dirty = true;
-    } 
+    }
+    public set targetOrigin(value: number[]) {
+        this._targetOrigin = value;
 
+        this._dirty = true;
+    }
+
+    private _targetDistance: number;
     private _distance: number;
     public set distance(value: number) {
         const viewer = this._viewer
@@ -142,7 +244,21 @@ export class NavigationArcball implements IPlugin
         }, viewer);
 
         this._distance = clamp(value, this._minDistance * meter, this._maxDistance * meter);
+        this._setTargetDistance(value);
         this._viewer._distance = this._distance;
+
+        this._dirty = true;
+    }
+
+    private _setTargetDistance(value: number) {
+        const viewer = this._viewer
+        let meter = 1;
+
+        viewer._handles.forEach(function (handle) {
+            meter = handle.model.meter
+        }, viewer);
+
+        this._targetDistance = clamp(value, this._minDistance * meter, this._maxDistance * meter);
 
         this._dirty = true;
     }
@@ -171,12 +287,35 @@ export class NavigationArcball implements IPlugin
         return this._interactionTimeout;
     }
 
+    private _setInterpolating() {
+        this._lastInteraction = Date.now();
+        this._interpolating = true;
+        this._interpolationStarted = Date.now();
+    }
+
 
     private _lastFrameTime = Date.now();
 
     private _lastInteraction = 0;
 
     private _dirty = true;
+
+    private _interpolationStarted = 0;
+    private _interpolating = false;
+    private _interpolationTime = 1000;
+
+    public set interpolationTime(value: number) {
+        this._interpolationTime = value * 1000;
+    }
+    public get interpolationTime() {
+        return this._interpolationTime / 1000;
+    }
+
+    private _animateCamera() {
+        if (!this._interpolating) {
+            return;
+        }
+    }
 
     private _updateCamera() {
         const dT = Date.now() - this._lastFrameTime;
@@ -198,12 +337,39 @@ export class NavigationArcball implements IPlugin
             this._setYaw(this._yaw += (dT / 1000) * this._rotationSpeed);
         }
 
-        if (!this._dirty) return;
+        if (!this._dirty && !this._interpolating) return;
 
-        var origin = this._origin;
-        var yaw = this._yaw;
-        var pitch = -this._pitch + (Math.PI / 2);
-        var distance = this._distance
+        const t = Math.min((this._lastFrameTime - this._interpolationStarted) / this._interpolationTime, 1.0);
+
+        var origin = !this._interpolating
+            ? this._origin
+            : vec3.lerp(
+                vec3.create(),
+                vec3.clone(this._origin),
+                vec3.clone(this._targetOrigin),
+                t,
+            );
+        var yaw = !this._interpolating
+            ? this._yaw
+            : interpolateAngle(this._yaw, this._targetYaw, t);
+        var pitch = !this._interpolating
+            ? this._pitch
+            : interpolateAngle(this._pitch, this._targetPitch, t);
+        pitch = -pitch + (Math.PI / 2);
+
+        var distance = !this._interpolating
+            ? this._distance
+            : this._distance + (this._targetDistance - this._distance) * t;
+
+        const interpolating = t < 1.0
+        
+        if (!interpolating && this._interpolating) {
+            this._setDistance(this._targetDistance);
+            this._setYaw(this._targetYaw);
+            this._setPitch(this._targetPitch);
+            this.origin = this._targetOrigin;
+            this._interpolating = false;
+        }
 
         const eye = vec3.create()
 
@@ -219,7 +385,7 @@ export class NavigationArcball implements IPlugin
     private navigate(type, deltaX, deltaY) {
         const viewer = this._viewer
 
-        if (!viewer._handles || !viewer._handles[0]) return;
+        if (!viewer._handles || !viewer._handles[0] || this._interpolating) return;
 
         this._lastInteraction = Date.now();
         
@@ -242,75 +408,66 @@ export class NavigationArcball implements IPlugin
         }
     }
 
-    private zoomTo(ids: number[], modelId?: number) {
+    private zoomTo(
+        ids: number[],
+        {
+            interpolate = false,
+            autoYaw = true,
+            yaw = this._yaw,
+            pitch = this._pitch,
+        }
+    ) {
         if (!ids) {
             return;
         }
-
+    
         const bboxes = ids.map(id => (
             this._viewer.forHandleOrAll((handle: ModelHandle) => {
                 let map = handle.getProductMap(id);
                 if (map) {
                     return map.bBox;
                 }
-            }, modelId)
-        ))
+            })
+        ), undefined)
 
-        const bbox = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
+        const bbox = mergeBboxes(bboxes);
 
-        bboxes.forEach(b => {
-            if (!b) {
-                return;
-            }
-
-            const bboxTop = [
-                bbox[0] + bbox[3],
-                bbox[1] + bbox[4],
-                bbox[2] + bbox[5],
-            ]
-
-            if (isNaN(bboxTop[0])) {
-                bboxTop[0] = -Infinity;
-            }
-            if (isNaN(bboxTop[1])) {
-                bboxTop[1] = -Infinity;
-            }
-            if (isNaN(bboxTop[2])) {
-                bboxTop[2] = -Infinity;
-            }
-
-            const bTop = [
-                b[0] + b[3],
-                b[1] + b[4],
-                b[2] + b[5],
-            ]
-
-            const top = [
-                Math.max(bboxTop[0], bTop[0]),
-                Math.max(bboxTop[1], bTop[1]),
-                Math.max(bboxTop[2], bTop[2]),
-            ]
-
-            bbox[0] = Math.min(bbox[0], b[0]);
-            bbox[1] = Math.min(bbox[1], b[1]);
-            bbox[2] = Math.min(bbox[2], b[2]);
-
-            bbox[3] = top[0] - bbox[0];
-            bbox[4] = top[1] - bbox[1];
-            bbox[5] = top[2] - bbox[2];
-        })
-
-        this.origin = [
+        const newOrigin = [
             bbox[0] + bbox[3] * 0.5,
             bbox[1] + bbox[4] * 0.5,
             bbox[2] + bbox[5] * 0.5,
         ]
+
         const distance = vec3.distance(
             vec3.fromValues(0, 0, 0),
             vec3.fromValues(bbox[3], bbox[4], bbox[5]),
-        )
+        );
 
-        this._setDistance(distance)
+        if (autoYaw) {
+            const dir = vec3.sub(vec3.create(), newOrigin, this._origin);
+
+            const angle = Math.atan2(dir[1], dir[0]);
+
+            yaw = angle
+        }
+
+        if (interpolate) {
+            this._setTargetYaw(yaw);
+            this._setTargetPitch(pitch);
+
+            this._setTargetDistance(distance);
+
+            this.targetOrigin = newOrigin;
+
+            this._setInterpolating();
+        } else {
+            this._setYaw(yaw);
+            this._setPitch(pitch);
+
+            this._setDistance(distance);
+
+            this.origin = newOrigin;
+        }
     }
 
     public onBeforeDraw(): void {
