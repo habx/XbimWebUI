@@ -225,6 +225,61 @@ var NavigationArcball = /** @class */ (function () {
                 break;
         }
     };
+    NavigationArcball.prototype.zoomTo = function (ids, modelId) {
+        var _this = this;
+        if (!ids) {
+            return;
+        }
+        var bboxes = ids.map(function (id) { return (_this._viewer.forHandleOrAll(function (handle) {
+            var map = handle.getProductMap(id);
+            if (map) {
+                return map.bBox;
+            }
+        }, modelId)); });
+        var bbox = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+        bboxes.forEach(function (b) {
+            if (!b) {
+                return;
+            }
+            var bboxTop = [
+                bbox[0] + bbox[3],
+                bbox[1] + bbox[4],
+                bbox[2] + bbox[5],
+            ];
+            if (isNaN(bboxTop[0])) {
+                bboxTop[0] = -Infinity;
+            }
+            if (isNaN(bboxTop[1])) {
+                bboxTop[1] = -Infinity;
+            }
+            if (isNaN(bboxTop[2])) {
+                bboxTop[2] = -Infinity;
+            }
+            var bTop = [
+                b[0] + b[3],
+                b[1] + b[4],
+                b[2] + b[5],
+            ];
+            var top = [
+                Math.max(bboxTop[0], bTop[0]),
+                Math.max(bboxTop[1], bTop[1]),
+                Math.max(bboxTop[2], bTop[2]),
+            ];
+            bbox[0] = Math.min(bbox[0], b[0]);
+            bbox[1] = Math.min(bbox[1], b[1]);
+            bbox[2] = Math.min(bbox[2], b[2]);
+            bbox[3] = top[0] - bbox[0];
+            bbox[4] = top[1] - bbox[1];
+            bbox[5] = top[2] - bbox[2];
+        });
+        this.origin = [
+            bbox[0] + bbox[3] * 0.5,
+            bbox[1] + bbox[4] * 0.5,
+            bbox[2] + bbox[5] * 0.5,
+        ];
+        var distance = vec3_1.vec3.distance(vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(bbox[3], bbox[4], bbox[5]));
+        this._setDistance(distance);
+    };
     NavigationArcball.prototype.onBeforeDraw = function () {
         if (this._isActive) {
             // Update camera matrix before drawing

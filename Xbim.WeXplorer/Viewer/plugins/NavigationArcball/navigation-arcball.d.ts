@@ -54,6 +54,7 @@ export declare class NavigationArcball implements IPlugin {
     private _dirty;
     private _updateCamera;
     private navigate;
+    private zoomTo;
     onBeforeDraw(): void;
     onAfterDraw(): void;
     onBeforeDrawId(): void;

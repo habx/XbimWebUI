@@ -2,6 +2,8 @@
 import { mat4 } from '../../matrix/mat4';
 import { vec3 } from '../../matrix/vec3';
 
+import { ModelHandle } from '../../model-handle';
+
 
 const clamp = (value, min, max) => Math.max(Math.min(0.9999 * max, value), 1.0001 * min);
 const degToRad = deg => deg * (Math.PI / 180.0);
@@ -238,6 +240,77 @@ export class NavigationArcball implements IPlugin
             default:
                 break;
         }
+    }
+
+    private zoomTo(ids: number[], modelId?: number) {
+        if (!ids) {
+            return;
+        }
+
+        const bboxes = ids.map(id => (
+            this._viewer.forHandleOrAll((handle: ModelHandle) => {
+                let map = handle.getProductMap(id);
+                if (map) {
+                    return map.bBox;
+                }
+            }, modelId)
+        ))
+
+        const bbox = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]
+
+        bboxes.forEach(b => {
+            if (!b) {
+                return;
+            }
+
+            const bboxTop = [
+                bbox[0] + bbox[3],
+                bbox[1] + bbox[4],
+                bbox[2] + bbox[5],
+            ]
+
+            if (isNaN(bboxTop[0])) {
+                bboxTop[0] = -Infinity;
+            }
+            if (isNaN(bboxTop[1])) {
+                bboxTop[1] = -Infinity;
+            }
+            if (isNaN(bboxTop[2])) {
+                bboxTop[2] = -Infinity;
+            }
+
+            const bTop = [
+                b[0] + b[3],
+                b[1] + b[4],
+                b[2] + b[5],
+            ]
+
+            const top = [
+                Math.max(bboxTop[0], bTop[0]),
+                Math.max(bboxTop[1], bTop[1]),
+                Math.max(bboxTop[2], bTop[2]),
+            ]
+
+            bbox[0] = Math.min(bbox[0], b[0]);
+            bbox[1] = Math.min(bbox[1], b[1]);
+            bbox[2] = Math.min(bbox[2], b[2]);
+
+            bbox[3] = top[0] - bbox[0];
+            bbox[4] = top[1] - bbox[1];
+            bbox[5] = top[2] - bbox[2];
+        })
+
+        this.origin = [
+            bbox[0] + bbox[3] * 0.5,
+            bbox[1] + bbox[4] * 0.5,
+            bbox[2] + bbox[5] * 0.5,
+        ]
+        const distance = vec3.distance(
+            vec3.fromValues(0, 0, 0),
+            vec3.fromValues(bbox[3], bbox[4], bbox[5]),
+        )
+
+        this._setDistance(distance)
     }
 
     public onBeforeDraw(): void {
