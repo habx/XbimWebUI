@@ -4,32 +4,16 @@ import { vec3 } from '../../matrix/vec3';
 
 import { ModelHandle } from '../../model-handle';
 
+const PI_2 = Math.PI * 2
 
 const clamp = (value, min, max) => Math.max(Math.min(0.9999 * max, value), 1.0001 * min);
 const degToRad = deg => deg * (Math.PI / 180.0);
 
-const lerp = (a, b, r) => a + ((b - a) * r)
-
 const interpolateAngle = (a, b, t) => {
-    const PI_2 = Math.PI * 2
+    const diff = (b - a) % PI_2;
+    const shortestAngle = ((2 * diff) % PI_2) - diff;
 
-    let fromAngle = (a + PI_2) % PI_2;
-    let toAngle = (b + PI_2) % PI_2;
-
-    const diff = Math.abs(fromAngle - toAngle);
-
-    if (diff < Math.PI) {
-        return lerp(fromAngle, toAngle, t);
-    } else {
-        if (fromAngle > toAngle) {
-            fromAngle = fromAngle - PI_2;
-            return lerp(fromAngle, toAngle, t);
-        }
-        else if (toAngle > fromAngle) {
-            toAngle = toAngle - PI_2;
-            return lerp(fromAngle, toAngle, t);
-        }
-    }  
+    return a + (shortestAngle * t); 
 }
 
 const mergeBboxes = bboxes => {
@@ -166,15 +150,15 @@ export class NavigationArcball implements IPlugin
     private _targetPitch: number = 0;
     private _pitch: number = 0;
     private _setPitch(value: number) {
-        this._pitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+        this._pitch = clamp(value % PI_2, this._minPitch, this._maxPitch);
         this._setTargetPitch(value);
         this._dirty = true;
     };
     private _setTargetPitch(value: number) {
-        this._targetPitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+        this._targetPitch = clamp(value % PI_2, this._minPitch, this._maxPitch);
 
         if (this._targetPitch - this._pitch > Math.PI) {
-            this._targetPitch = - (Math.PI * 2) - this._targetPitch;
+            this._targetPitch = - PI_2 - this._targetPitch;
         }
 
         this._dirty = true;
@@ -183,17 +167,12 @@ export class NavigationArcball implements IPlugin
     private _targetYaw: number = 0;
     private _yaw: number = 0;
     private _setYaw(value: number) {
-        this._yaw = value % (Math.PI * 2);
+        this._yaw = value % PI_2;
         this._setTargetYaw(value);
         this._dirty = true;
     };
     private _setTargetYaw(value: number) {
-        this._targetYaw = value % (Math.PI * 2);
-
-        if (this._targetYaw - this._yaw > Math.PI) {
-            this._targetYaw = - (Math.PI * 2) - this._targetYaw;
-        }
-
+        this._targetYaw = value % PI_2;
         this._dirty = true;
     };
 
@@ -451,7 +430,7 @@ export class NavigationArcball implements IPlugin
             yaw = angle
         }
 
-        if (interpolate) {
+        if (interpolate) {            
             this._setTargetYaw(yaw);
             this._setTargetPitch(pitch);
 

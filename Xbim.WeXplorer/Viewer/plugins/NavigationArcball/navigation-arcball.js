@@ -2,27 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var mat4_1 = require("../../matrix/mat4");
 var vec3_1 = require("../../matrix/vec3");
+var PI_2 = Math.PI * 2;
 var clamp = function (value, min, max) { return Math.max(Math.min(0.9999 * max, value), 1.0001 * min); };
 var degToRad = function (deg) { return deg * (Math.PI / 180.0); };
-var lerp = function (a, b, r) { return a + ((b - a) * r); };
 var interpolateAngle = function (a, b, t) {
-    var PI_2 = Math.PI * 2;
-    var fromAngle = (a + PI_2) % PI_2;
-    var toAngle = (b + PI_2) % PI_2;
-    var diff = Math.abs(fromAngle - toAngle);
-    if (diff < Math.PI) {
-        return lerp(fromAngle, toAngle, t);
-    }
-    else {
-        if (fromAngle > toAngle) {
-            fromAngle = fromAngle - PI_2;
-            return lerp(fromAngle, toAngle, t);
-        }
-        else if (toAngle > fromAngle) {
-            toAngle = toAngle - PI_2;
-            return lerp(fromAngle, toAngle, t);
-        }
-    }
+    var diff = (b - a) % PI_2;
+    var shortestAngle = ((2 * diff) % PI_2) - diff;
+    return a + (shortestAngle * t);
 };
 var mergeBboxes = function (bboxes) {
     var bbox = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
@@ -162,30 +148,27 @@ var NavigationArcball = /** @class */ (function () {
         configurable: true
     });
     NavigationArcball.prototype._setPitch = function (value) {
-        this._pitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+        this._pitch = clamp(value % PI_2, this._minPitch, this._maxPitch);
         this._setTargetPitch(value);
         this._dirty = true;
     };
     ;
     NavigationArcball.prototype._setTargetPitch = function (value) {
-        this._targetPitch = clamp(value % (Math.PI * 2), this._minPitch, this._maxPitch);
+        this._targetPitch = clamp(value % PI_2, this._minPitch, this._maxPitch);
         if (this._targetPitch - this._pitch > Math.PI) {
-            this._targetPitch = -(Math.PI * 2) - this._targetPitch;
+            this._targetPitch = -PI_2 - this._targetPitch;
         }
         this._dirty = true;
     };
     ;
     NavigationArcball.prototype._setYaw = function (value) {
-        this._yaw = value % (Math.PI * 2);
+        this._yaw = value % PI_2;
         this._setTargetYaw(value);
         this._dirty = true;
     };
     ;
     NavigationArcball.prototype._setTargetYaw = function (value) {
-        this._targetYaw = value % (Math.PI * 2);
-        if (this._targetYaw - this._yaw > Math.PI) {
-            this._targetYaw = -(Math.PI * 2) - this._targetYaw;
-        }
+        this._targetYaw = value % PI_2;
         this._dirty = true;
     };
     ;
