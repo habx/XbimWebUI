@@ -12,7 +12,10 @@
     "worker-loader": "^0.8.0"
   },
   "scripts": {
-    "build": "npm run jsdoc && npm run build:dev && npm run build:prod",
+    "build:all": "npm run build:doc && npm run build",
+    "build:doc": "npm run jsdoc ",
+    "build": "npm run build:dev && npm run build:prod",
+    "dev": "cross-env NODE_ENV=development webpack --watch -d",
     "jsdoc": "jsdoc -c jsdoc.config.json",
     "build:dev": "cross-env NODE_ENV=development webpack -d",
     "build:prod": "cross-env NODE_ENV=production webpack -p"

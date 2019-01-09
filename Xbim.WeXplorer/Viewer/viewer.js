@@ -1004,20 +1004,6 @@ var Viewer = /** @class */ (function () {
             //deltaX and deltaY have very different values in different web browsers so fixed value is used for constant functionality.
             _this.navigate('zoom', sign(event.deltaX) * -1.0, sign(event.deltaY) * -1.0);
         };
-        //watch resizing of canvas every 500ms
-        setInterval(function () {
-            var newRenderHeight = viewer._canvas.height || viewer._canvas.offsetHeight;
-            var newRenderWidth = viewer._canvas.width || viewer._canvas.offsetWidth;
-            var newHeight = viewer._canvas.offsetHeight;
-            var newWidth = viewer._canvas.offsetWidth;
-            if (newRenderHeight != viewer._renderHeight || newRenderWidth != viewer._renderWidth ||
-                newHeight != viewer._height || newWidth != viewer._width) {
-                viewer._renderHeight = newRenderHeight;
-                viewer._renderWidth = newRenderWidth;
-                viewer._height = newHeight;
-                viewer._width = newWidth;
-            }
-        }, 500);
         //attach callbacks
         this._canvas.addEventListener('mousedown', function (event) { return handleMouseDown(event); }, true);
         this._canvas.addEventListener('wheel', function (event) { return handleMouseScroll(event); }, true);
@@ -1054,6 +1040,19 @@ var Viewer = /** @class */ (function () {
             viewer.fire('dblclick', { id: id, model: modelId });
         };
         this._canvas.addEventListener('dblclick', function (event) { return handleDoubleClick(event); }, true);
+    };
+    Viewer.prototype._updateSize = function () {
+        var newRenderHeight = this._canvas.height || this._canvas.offsetHeight;
+        var newRenderWidth = this._canvas.width || this._canvas.offsetWidth;
+        var newHeight = this._canvas.offsetHeight;
+        var newWidth = this._canvas.offsetWidth;
+        if (newRenderHeight != this._renderHeight || newRenderWidth != this._renderWidth ||
+            newHeight != this._height || newWidth != this._width) {
+            this._renderHeight = newRenderHeight;
+            this._renderWidth = newRenderWidth;
+            this._height = newHeight;
+            this._width = newWidth;
+        }
     };
     Viewer.prototype._initTouchNavigationEvents = function () {
         var _this = this;
@@ -1270,6 +1269,7 @@ var Viewer = /** @class */ (function () {
                 return;
         }
         this._userAction = false;
+        this._updateSize();
         //call all before-draw plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onBeforeDraw) {

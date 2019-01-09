@@ -1171,28 +1171,6 @@ export class Viewer {
             this.navigate('zoom', sign(event.deltaX) * -1.0, sign(event.deltaY) * -1.0);
         }
 
-
-
-        //watch resizing of canvas every 500ms
-        setInterval(() => {
-            var newRenderHeight = viewer._canvas.height || viewer._canvas.offsetHeight;
-            var newRenderWidth = viewer._canvas.width || viewer._canvas.offsetWidth;
-
-            var newHeight = viewer._canvas.offsetHeight;
-            var newWidth = viewer._canvas.offsetWidth;
-
-            if (
-                newRenderHeight != viewer._renderHeight || newRenderWidth != viewer._renderWidth ||
-                newHeight != viewer._height || newWidth != viewer._width
-            ) {
-                viewer._renderHeight = newRenderHeight;
-                viewer._renderWidth = newRenderWidth;
-                viewer._height = newHeight;
-                viewer._width = newWidth;
-            }
-        }, 500);
-
-
         //attach callbacks
         this._canvas.addEventListener('mousedown', (event) => handleMouseDown(event), true);
         this._canvas.addEventListener('wheel', (event) => handleMouseScroll(event), true);
@@ -1238,6 +1216,24 @@ export class Viewer {
         };
 
         this._canvas.addEventListener('dblclick', (event) => handleDoubleClick(event), true);
+    }
+
+    private _updateSize() {
+        var newRenderHeight = this._canvas.height || this._canvas.offsetHeight;
+        var newRenderWidth = this._canvas.width || this._canvas.offsetWidth;
+
+        var newHeight = this._canvas.offsetHeight;
+        var newWidth = this._canvas.offsetWidth;
+
+        if (
+            newRenderHeight != this._renderHeight || newRenderWidth != this._renderWidth ||
+            newHeight != this._height || newWidth != this._width
+        ) {
+            this._renderHeight = newRenderHeight;
+            this._renderWidth = newRenderWidth;
+            this._height = newHeight;
+            this._width = newWidth;
+        }
     }
 
     private _initTouchNavigationEvents() {
@@ -1489,6 +1485,8 @@ export class Viewer {
         }
         this._userAction = false;
 
+        this._updateSize();
+
         //call all before-draw plugins
         this._plugins.forEach((plugin) => {
             if (!plugin.onBeforeDraw) {
@@ -1501,6 +1499,7 @@ export class Viewer {
         this._stylingChanged = false;
 
         var gl = this.gl;
+        
         var width = this._renderWidth;
         var height = this._renderHeight;
         var ratio = this._width / this._height
@@ -1632,6 +1631,7 @@ export class Viewer {
          * @event Viewer#frame 
          * @type {object}
          */
+
         this.fire('frame', {});
     };
 

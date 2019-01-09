@@ -307,6 +307,7 @@ export declare class Viewer {
     _initShaders(): void;
     private _initAttributesAndUniforms;
     private _initMouseEvents;
+    private _updateSize;
     private _initTouchNavigationEvents;
     private _initTouchTapEvents;
     private navigate;
