@@ -37,6 +37,16 @@ export class ModelGeometry {
     public transparentIndex: number;
     public productIdLookup = [];
 
+    public getNormal = (normal1, normal2) => {
+        const lon = normal1 / 252.0 * 2.0 * Math.PI;
+        const lat = normal2 / 252.0 * Math.PI;
+
+        const x = Math.sin(lon) * Math.sin(lat);
+        const z = Math.cos(lon) * Math.sin(lat);
+        const y = Math.cos(lat);
+        return vec3.normalize(vec3.create(), vec3.fromValues(x, y, z));
+    }
+
     public parse(binReader: BinaryReader) {
         var br = binReader;
         var magicNumber = br.readInt32();
@@ -230,7 +240,14 @@ export class ModelGeometry {
                     const transformedVertex = vec3.transformMat4(vec3.create(), vertex, shape.transformation);
 
                     if (map.type === typeEnum.IFCSLAB) {
-                        transformedVertex[2] += this.meter * 0.01
+                        transformedVertex[2] += this.meter * 0.02
+                    } else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
+                        const offsetRatio = this.meter * 0.004;
+                        const normal = this.getNormal(this.normals[2 * iIndex], this.normals[(2 * iIndex) + 1])
+                        
+                        transformedVertex[0] += normal[0] * offsetRatio;
+                        transformedVertex[1] += normal[1] * offsetRatio;
+                        transformedVertex[2] += normal[2] * offsetRatio;
                     }
 
                     this.vertices[3 * iIndex] = transformedVertex[0];

@@ -19,6 +19,14 @@ var ModelGeometry = /** @class */ (function () {
         //};
         this.productMaps = {};
         this.productIdLookup = [];
+        this.getNormal = function (normal1, normal2) {
+            var lon = normal1 / 252.0 * 2.0 * Math.PI;
+            var lat = normal2 / 252.0 * Math.PI;
+            var x = Math.sin(lon) * Math.sin(lat);
+            var z = Math.cos(lon) * Math.sin(lat);
+            var y = Math.cos(lat);
+            return vec3_1.vec3.normalize(vec3_1.vec3.create(), vec3_1.vec3.fromValues(x, y, z));
+        };
     }
     ModelGeometry.prototype.parse = function (binReader) {
         var _this = this;
@@ -195,7 +203,14 @@ var ModelGeometry = /** @class */ (function () {
                     vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                     var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
                     if (map.type === typeEnum.IFCSLAB) {
-                        transformedVertex[2] += _this.meter * 0.01;
+                        transformedVertex[2] += _this.meter * 0.02;
+                    }
+                    else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
+                        var offsetRatio = _this.meter * 0.004;
+                        var normal = _this.getNormal(_this.normals[2 * iIndex], _this.normals[(2 * iIndex) + 1]);
+                        transformedVertex[0] += normal[0] * offsetRatio;
+                        transformedVertex[1] += normal[1] * offsetRatio;
+                        transformedVertex[2] += normal[2] * offsetRatio;
                     }
                     _this.vertices[3 * iIndex] = transformedVertex[0];
                     _this.vertices[3 * iIndex + 1] = transformedVertex[1];
