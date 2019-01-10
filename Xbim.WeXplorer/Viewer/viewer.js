@@ -153,7 +153,7 @@ var Viewer = /** @class */ (function () {
         */
         this._clippingPlaneB = [0, 0, 0, 0];
         //*************************** Do all the set up of WebGL **************************
-        var gl = webgl_utils_1.WebGLUtils.setupWebGL(this._canvas);
+        var gl = webgl_utils_1.WebGLUtils.setupWebGL(this._canvas, { antialias: true });
         //do not even initialize this object if WebGL is not supported
         if (!gl) {
             return;
@@ -986,6 +986,9 @@ var Viewer = /** @class */ (function () {
             }
         };
         var handleMouseScroll = function (event) {
+            if (viewer.requireCtrlToZoom && !event.ctrlKey) {
+                return;
+            }
             if (viewer.navigationMode === 'none') {
                 return;
             }

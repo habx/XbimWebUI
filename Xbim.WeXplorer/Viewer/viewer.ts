@@ -155,7 +155,7 @@ export class Viewer {
 
 
         //*************************** Do all the set up of WebGL **************************
-        var gl = WebGLUtils.setupWebGL(this._canvas);
+        var gl = WebGLUtils.setupWebGL(this._canvas, { antialias: true });
 
         //do not even initialize this object if WebGL is not supported
         if (!gl) {
@@ -267,6 +267,7 @@ export class Viewer {
     private _renderHeight: number;
     public _distance: number;
     public camera: 'perspective' | 'orthogonal';
+    public requireCtrlToZoom: false;
     public background: number[];
     private _isRunning: boolean;
     private _stateStyles: Uint8Array;
@@ -1150,6 +1151,10 @@ export class Viewer {
         };
 
         var handleMouseScroll = (event: WheelEvent) => {
+            if (viewer.requireCtrlToZoom && !event.ctrlKey) {
+                return;
+            }
+
             if (viewer.navigationMode === 'none') {
                 return;
             }

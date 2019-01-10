@@ -45,6 +45,7 @@ export declare class Viewer {
     private _renderHeight;
     _distance: number;
     camera: 'perspective' | 'orthogonal';
+    requireCtrlToZoom: false;
     background: number[];
     private _isRunning;
     private _stateStyles;
