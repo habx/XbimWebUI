@@ -1015,6 +1015,7 @@ export class Viewer {
 
         //set initial conditions so that different gestures can be identified
         var handleMouseDown = (event: MouseEvent) => {
+            viewer.fire('movestart', {});
             mouseDown = true;
             lastMouseX = event.clientX;
             lastMouseY = event.clientY;
@@ -1069,6 +1070,7 @@ export class Viewer {
         };
 
         var handleMouseUp = (event: MouseEvent) => {
+            viewer.fire('movestop', {});
             mouseDown = false;
 
             var endX = event.clientX;
@@ -1242,6 +1244,7 @@ export class Viewer {
     }
 
     private _initTouchNavigationEvents() {
+        const viewer = this;
 
         var lastTouchX_1: number;
         var lastTouchY_1: number;
@@ -1252,6 +1255,10 @@ export class Viewer {
 
 
         var handleTouchStart = (event: TouchEvent) => {
+            if (event.touches.length === 1) {
+                viewer.fire('movestart', {});
+            }
+
             event.preventDefault();
             if (event.touches.length >= 1) {
                 lastTouchX_1 = event.touches[0].clientX;
@@ -1324,7 +1331,14 @@ export class Viewer {
             }
         }
 
+        var handleTouchHand = (event: TouchEvent) => {
+            if (event.touches.length === 0) {
+                viewer.fire('movestop', {});
+            }
+        }
+
         this._canvas.addEventListener('touchstart', (event) => handleTouchStart(event), true);
+        this._canvas.addEventListener('touchend', (event) => handleTouchEnd(event), true);
         this._canvas.addEventListener('touchmove', (event) => handleTouchMove(event), true);
     }
 

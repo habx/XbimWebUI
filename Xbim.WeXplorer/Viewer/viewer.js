@@ -879,6 +879,7 @@ var Viewer = /** @class */ (function () {
         var modelId = -1;
         //set initial conditions so that different gestures can be identified
         var handleMouseDown = function (event) {
+            viewer.fire('movestart', {});
             mouseDown = true;
             lastMouseX = event.clientX;
             lastMouseY = event.clientY;
@@ -922,6 +923,7 @@ var Viewer = /** @class */ (function () {
             viewer.disableTextSelection();
         };
         var handleMouseUp = function (event) {
+            viewer.fire('movestop', {});
             mouseDown = false;
             var endX = event.clientX;
             var endY = event.clientY;
@@ -1059,6 +1061,7 @@ var Viewer = /** @class */ (function () {
     };
     Viewer.prototype._initTouchNavigationEvents = function () {
         var _this = this;
+        var viewer = this;
         var lastTouchX_1;
         var lastTouchY_1;
         var lastTouchX_2;
@@ -1066,6 +1069,9 @@ var Viewer = /** @class */ (function () {
         var lastTouchX_3;
         var lastTouchY_3;
         var handleTouchStart = function (event) {
+            if (event.touches.length === 1) {
+                viewer.fire('movestart', {});
+            }
             event.preventDefault();
             if (event.touches.length >= 1) {
                 lastTouchX_1 = event.touches[0].clientX;
@@ -1137,7 +1143,13 @@ var Viewer = /** @class */ (function () {
                 _this.navigate('pan', panFactor * directionX, panFactor * directionY);
             }
         };
+        var handleTouchHand = function (event) {
+            if (event.touches.length === 0) {
+                viewer.fire('movestop', {});
+            }
+        };
         this._canvas.addEventListener('touchstart', function (event) { return handleTouchStart(event); }, true);
+        this._canvas.addEventListener('touchend', function (event) { return handleTouchEnd(event); }, true);
         this._canvas.addEventListener('touchmove', function (event) { return handleTouchMove(event); }, true);
     };
     Viewer.prototype._initTouchTapEvents = function () {

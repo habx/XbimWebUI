@@ -6,6 +6,8 @@ import { ProductType } from "./product-type";
 import { mat4 } from "./matrix/mat4";
 import { vec3 } from "./matrix/vec3";
 
+const tick = () => new Promise(cb => setTimeout(cb, 0))
+
 export class ModelGeometry {
     //all this data is to be fed into GPU as attributes
     normals: Uint8Array;
@@ -47,7 +49,8 @@ export class ModelGeometry {
         return vec3.normalize(vec3.create(), vec3.fromValues(x, y, z));
     }
 
-    public parse(binReader: BinaryReader) {
+    public async parse(binReader: BinaryReader) {
+        console.time('parse')
         var br = binReader;
         var magicNumber = br.readInt32();
         if (magicNumber != 94132117) throw 'Magic number mismatch.';
@@ -150,6 +153,9 @@ export class ModelGeometry {
         }
 
         for (var iShape = 0; iShape < numShapes; iShape++) {
+            if (iShape % 250 === 0) {
+                await tick()
+            }
 
             var repetition = br.readInt32();
             var shapeList = [];
@@ -277,6 +283,8 @@ export class ModelGeometry {
         }
 
         this.transparentIndex = iIndexForward;
+
+        console.timeEnd('parse')
     }
 
     //Source has to be either URL of wexBIM file or Blob representing wexBIM file
@@ -284,8 +292,8 @@ export class ModelGeometry {
         //binary reading
         var br = new BinaryReader();
         var self = this;
-        br.onloaded = function () {
-            self.parse(br);
+        br.onloaded = async function () {
+            await self.parse(br);
             if (self.onloaded) {
                 self.onloaded(this);
             }

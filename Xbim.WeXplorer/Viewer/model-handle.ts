@@ -230,6 +230,8 @@ export class ModelHandle {
         //fill in all textures
         this._styleTextureSize = ModelHandle.bufferTexture(gl, this._styleTexture, model.styles);
 
+        console.log(model.styles)
+
 
         //Forget everything except for states and styles (this should save some RAM).
         //data is already loaded to GPU by now

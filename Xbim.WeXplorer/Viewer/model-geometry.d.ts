@@ -18,7 +18,7 @@ export declare class ModelGeometry {
     transparentIndex: number;
     productIdLookup: any[];
     getNormal: (normal1: any, normal2: any) => Float32Array;
-    parse(binReader: BinaryReader): void;
+    parse(binReader: BinaryReader): Promise<void>;
     load(source: any): void;
     onloaded: (geometry: ModelGeometry) => void;
     onerror: (message?: string) => void;

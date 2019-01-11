@@ -277,8 +277,10 @@ exports.ProductInheritance = {
                             name: "IfcWindow",
                             id: 667,
                             abs: false,
-                            children: [{ name: "IfcWindowStandardCase", id: 1316, abs: false }]
-                        }, { name: "IfcBuildingElementProxy", id: 560, abs: false },
+                            children: []
+                        },
+                        { name: "IfcWindowStandardCase", id: 1316, abs: false },
+                        { name: "IfcBuildingElementProxy", id: 560, abs: false },
                         { name: "IfcCovering", id: 382, abs: false },
                         { name: "IfcChimney", id: 1120, abs: false }, { name: "IfcShadingDevice", id: 1265, abs: false }
                     ]

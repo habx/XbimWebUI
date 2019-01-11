@@ -134,8 +134,8 @@ void main(void) {
 		float backLightWeightB = max(dot(backNormal, lightBDirection) * lightBIntensity, 0.0);
 
 		//minimal constant value is for ambient light
-		float lightWeighting = lightWeightA + lightWeightB + 0.4;
-		float backLightWeighting = backLightWeightA + backLightWeightB + 0.4;
+		float lightWeighting = lightWeightA + lightWeightB + 0.7;
+		float backLightWeighting = backLightWeightA + backLightWeightB + 0.7;
 
 		//get base color or set highlighted colour
 		vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0);
