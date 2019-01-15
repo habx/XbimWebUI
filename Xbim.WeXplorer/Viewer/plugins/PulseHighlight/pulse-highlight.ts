@@ -228,36 +228,7 @@ export class PulseHighlight implements IPlugin {
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
-        const spans = []
-
-        let currentSpan = []
-
-        for (var i = 0; i < handle.model.states.length; i += 2) {
-            if (handle.model.states[i] === State.HIGHLIGHTED) {
-                var index = i / 2;
-                if (!currentSpan.length) {
-                    currentSpan[0] = index
-                    currentSpan[1] = index
-                } else if (currentSpan[1] === index - 1) {
-                    currentSpan[1] = index
-                } else {
-                    currentSpan[1] += 1
-                    spans.push(currentSpan)
-                    currentSpan = [index, index]
-                }
-            }
-        }
-
-        if (currentSpan.length) {
-            currentSpan[1] += 1
-            spans.push(currentSpan)
-        }
-
-        if (spans.length) {
-            spans.forEach(function (span) {
-                gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
-            }, handle);
-        }
+        handle.draw()
     }
 
     private _initShader = function () {
