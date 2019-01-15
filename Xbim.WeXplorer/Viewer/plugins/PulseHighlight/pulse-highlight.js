@@ -196,6 +196,7 @@ var PulseHighlight = /** @class */ (function () {
         if (!this._initialized)
             return;
         var gl = this.viewer.gl;
+        gl.enable(gl.BLEND);
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this.viewer._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.viewer.mvMatrix);
         gl.uniform4fv(this._clippingPlaneAUniformPointer, new Float32Array(this.viewer._clippingPlaneA));
@@ -214,9 +215,11 @@ var PulseHighlight = /** @class */ (function () {
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
         gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
+        gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
         this.viewer._handles.forEach(this.drawHandle.bind(this));
         gl.enable(gl.DEPTH_TEST);
+        gl.disable(gl.BLEND);
     };
     return PulseHighlight;
 }());

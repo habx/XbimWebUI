@@ -182,8 +182,8 @@ export class Viewer {
         //semi-transparent object like curtain wall panel or window which is the case most of the time.
         //This is known limitation but there is no plan to change this behaviour.
         gl.enable(gl.DEPTH_TEST);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.enable(gl.BLEND);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
+        gl.disable(gl.BLEND);
 
         //cache canvas width and height and change it only when size change
         // it is better to cache this value because it is used frequently and it takes a time to get a value from HTML
@@ -1599,6 +1599,7 @@ export class Viewer {
 
         //check for x-ray mode
         if (this.renderingMode == RenderingMode.XRAY) {
+            gl.enable(gl.BLEND);
             //two passes - first one for non-transparent objects, second one for all the others
             gl.disable(gl.CULL_FACE);
             this._handles.forEach((handle) => {
@@ -1616,6 +1617,7 @@ export class Viewer {
                     handle.draw('transparent');
                 }
             });
+            gl.disable(gl.BLEND);
         } else {
             gl.disable(gl.CULL_FACE);
 
@@ -1628,12 +1630,14 @@ export class Viewer {
                 }
             });
 
+            gl.enable(gl.BLEND);
             this._handles.forEach((handle) => {
                 if (!handle.stopped) {
                     handle.setActive(this._pointers);
                     handle.draw('transparent');
                 }
             });
+            gl.disable(gl.BLEND);
         }
 
         //call all after-draw plugins
@@ -1882,8 +1886,7 @@ export class Viewer {
         gl.deleteFramebuffer(frameBuffer);
 
         //set back blending
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.enable(gl.BLEND);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
         gl.disable(gl.SCISSOR_TEST);
 
         //decode ID (bit shifting by multiplication)
