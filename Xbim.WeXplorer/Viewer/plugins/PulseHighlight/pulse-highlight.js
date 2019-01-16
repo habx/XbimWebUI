@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var state_1 = require("../../state");
 var pulse_highlight_shaders_1 = require("./pulse-highlight-shaders");
 var PulseHighlight = /** @class */ (function () {
     /**
@@ -19,7 +20,45 @@ var PulseHighlight = /** @class */ (function () {
         this._periodOffset = 0;
         this._alphaMin = 0.3;
         this._alphaMax = 0.6;
-        this.drawHandle = function (handle) {
+        this._spans = [];
+        this.setState = function (state, target, modelId) {
+            this._originalSetState(state, target, modelId);
+            this.updateSpans();
+        };
+        this.resetStates = function (hideSpaces, modelId) {
+            this._originalResetStates(hideSpaces, modelId);
+            this.updateSpans();
+        };
+        this.updateSpans = function () {
+            var _this = this;
+            this.viewer._handles.forEach(function (handle, handleIndex) {
+                var spans = [];
+                var currentSpan = [];
+                for (var i = 0; i < handle.model.states.length; i += 2) {
+                    if (handle.model.states[i] === state_1.State.HIGHLIGHTED) {
+                        var index = i / 2;
+                        if (!currentSpan.length) {
+                            currentSpan[0] = index;
+                            currentSpan[1] = index;
+                        }
+                        else if (currentSpan[1] === index - 1) {
+                            currentSpan[1] = index;
+                        }
+                        else {
+                            currentSpan[1] += 1;
+                            spans.push(currentSpan);
+                            currentSpan = [index, index];
+                        }
+                    }
+                }
+                if (currentSpan.length) {
+                    currentSpan[1] += 1;
+                    spans.push(currentSpan);
+                }
+                _this._spans[handleIndex] = spans;
+            });
+        };
+        this.drawHandle = function (handle, handleIndex) {
             var gl = this.viewer.gl;
             if (handle.stopped)
                 return;
@@ -30,7 +69,12 @@ var PulseHighlight = /** @class */ (function () {
             gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
             gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
             gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-            handle.draw();
+            var spans = this._spans[handleIndex];
+            if (spans && spans.length) {
+                spans.forEach(function (span) {
+                    gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                }, handle);
+            }
         };
         this._initShader = function () {
             var gl = this.viewer.gl;
@@ -141,6 +185,11 @@ var PulseHighlight = /** @class */ (function () {
         //reset original shader program
         gl.useProgram(this.viewer._shaderProgram);
         this._initialized = true;
+        this._originalSetState = viewer['setState'].bind(viewer);
+        viewer['setState'] = this.setState.bind(this);
+        this._originalResetStates = viewer['resetStates'].bind(viewer);
+        viewer['resetStates'] = this.resetStates.bind(this);
+        this.updateSpans();
     };
     PulseHighlight.prototype.onBeforeDraw = function () { };
     PulseHighlight.prototype.onBeforePick = function (id) { return false; };

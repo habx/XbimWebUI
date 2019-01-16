@@ -42,11 +42,17 @@ export class PulseHighlight implements IPlugin {
 
     private _positionAttrPointer: number;
     private _stateAttrPointer: number;
+    private _normalAttrPointer: number;
 
     private _period: number = 1500;
     private _periodOffset: number = 0;
     private _alphaMin: number = 0.3;
     private _alphaMax: number = 0.6;
+
+    private _spans = [];
+
+    private _originalSetState: (state: State, target: number | number[], modelId?: number) => void;
+    private _originalResetStates: (hideSpaces?: boolean, modelId?: number) => void;
 
     /**
     * Min alpha of the pulse effect
@@ -138,6 +144,14 @@ export class PulseHighlight implements IPlugin {
         gl.useProgram(this.viewer._shaderProgram);
 
         this._initialized = true;
+
+        this._originalSetState = viewer['setState'].bind(viewer);
+        viewer['setState'] = this.setState.bind(this);
+
+        this._originalResetStates = viewer['resetStates'].bind(viewer);
+        viewer['resetStates'] = this.resetStates.bind(this);
+
+        this.updateSpans();
     }
 
     public onBeforeDraw() { }
@@ -163,7 +177,6 @@ export class PulseHighlight implements IPlugin {
         var gl = this.viewer.gl;
         //set own shader
         gl.useProgram(this._shader);
-
         return gl;
     }
 
@@ -213,11 +226,54 @@ export class PulseHighlight implements IPlugin {
         gl.disable(gl.BLEND);
     }
 
-    private drawHandle = function (handle) {
+    private setState = function (state: State, target: number | number[], modelId?: number) {
+        this._originalSetState(state, target, modelId)
+
+        this.updateSpans()
+    }
+
+    private resetStates = function (hideSpaces?: boolean, modelId?: number) {
+        this._originalResetStates(hideSpaces, modelId)
+
+        this.updateSpans()
+    }
+
+    private updateSpans = function () {
+        this.viewer._handles.forEach((handle, handleIndex) => {
+            const spans = []
+
+            let currentSpan = []
+
+            for (var i = 0; i < handle.model.states.length; i += 2) {
+                if (handle.model.states[i] === State.HIGHLIGHTED) {
+                    var index = i / 2;
+                    if (!currentSpan.length) {
+                        currentSpan[0] = index
+                        currentSpan[1] = index
+                    } else if (currentSpan[1] === index - 1) {
+                        currentSpan[1] = index
+                    } else {
+                        currentSpan[1] += 1
+                        spans.push(currentSpan)
+                        currentSpan = [index, index]
+                    }
+                }
+            }
+
+            if (currentSpan.length) {
+                currentSpan[1] += 1
+                spans.push(currentSpan)
+            }
+
+            this._spans[handleIndex] = spans
+        })
+    }
+
+    private drawHandle = function (handle, handleIndex) {
         var gl = this.viewer.gl;
 
         if (handle.stopped) return;
-
+        
         //set attributes and uniforms
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
         gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
@@ -228,7 +284,13 @@ export class PulseHighlight implements IPlugin {
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
-        handle.draw()
+        const spans = this._spans[handleIndex]
+
+        if (spans && spans.length) {
+            spans.forEach(function (span) {
+                gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+            }, handle);
+        }
     }
 
     private _initShader = function () {

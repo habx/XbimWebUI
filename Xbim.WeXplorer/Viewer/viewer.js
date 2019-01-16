@@ -876,7 +876,7 @@ var Viewer = /** @class */ (function () {
         var startY = null;
         var button = 'L';
         var id = -1;
-        var modelId = -1;
+        var modelId = undefined;
         //set initial conditions so that different gestures can be identified
         var handleMouseDown = function (event) {
             viewer.fire('movestart', {});
@@ -891,11 +891,9 @@ var Viewer = /** @class */ (function () {
             var viewY = viewer._height - (startY - r.top);
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            modelId = viewer.getID(viewX, viewY, true);
+            // modelId = viewer.getID(viewX, viewY, true);
             // get product ID from reduced render ID
-            if (modelId) {
-                id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
-            }
+            id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             /**
             * Occurs when mousedown event happens on underlying canvas.
             *
@@ -1029,11 +1027,9 @@ var Viewer = /** @class */ (function () {
             var viewY = viewer._height - (startY - r.top);
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            modelId = viewer.getID(viewX, viewY, true);
+            // modelId = viewer.getID(viewX, viewY, true);
             // get product ID from reduced render ID
-            if (modelId) {
-                id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
-            }
+            id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             /**
             * Occurs when mousedown event happens on underlying canvas.
             *
@@ -1160,7 +1156,7 @@ var Viewer = /** @class */ (function () {
         var maximumLengthBetweenDoubleTaps = 200;
         var lastTap = new Date();
         var id = -1;
-        var modelId = -1;
+        var modelId = undefined;
         //set initial conditions so that different gestures can be identified
         var handleTouchStart = function (event) {
             if (event.touches.length !== 1) {
@@ -1175,11 +1171,9 @@ var Viewer = /** @class */ (function () {
             var viewY = _this._height - (lastTouchY - r.top);
             //this is for picking
             id = _this.getID(viewX, viewY);
-            modelId = _this.getID(viewX, viewY, true);
+            // modelId = this.getID(viewX, viewY, true);
             // get product ID from reduced render ID
-            if (modelId) {
-                id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
-            }
+            id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             var now = new Date();
             var isDoubleTap = (now.getTime() - lastTap.getTime()) < maximumLengthBetweenDoubleTaps;
             if (isDoubleTap) {

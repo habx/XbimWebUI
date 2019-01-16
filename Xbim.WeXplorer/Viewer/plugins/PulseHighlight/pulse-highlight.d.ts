@@ -29,10 +29,14 @@ export declare class PulseHighlight implements IPlugin {
     private _stateStyleSamplerUniform;
     private _positionAttrPointer;
     private _stateAttrPointer;
+    private _normalAttrPointer;
     private _period;
     private _periodOffset;
     private _alphaMin;
     private _alphaMax;
+    private _spans;
+    private _originalSetState;
+    private _originalResetStates;
     /**
     * Min alpha of the pulse effect
     * @member {Number} PulseHighlight#alphaMin
@@ -58,6 +62,9 @@ export declare class PulseHighlight implements IPlugin {
     private setActive;
     private setInactive;
     private draw;
+    private setState;
+    private resetStates;
+    private updateSpans;
     private drawHandle;
     private _initShader;
 }

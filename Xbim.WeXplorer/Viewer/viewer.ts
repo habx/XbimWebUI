@@ -486,7 +486,7 @@ export class Viewer {
         this._pickableProducts = typeof target === 'number' ? [target] : target
     }
 
-    private forHandleOrAll<T>(callback: (h: ModelHandle) => T, modelId: number): T {
+    private forHandleOrAll<T>(callback: (h: ModelHandle) => T, modelId?: number): T {
         if (typeof (modelId) !== 'undefined') {
             let handle = this._handles.filter((h, i, a) => {
                 return h.id === modelId;
@@ -1011,7 +1011,7 @@ export class Viewer {
         var startY = null;
         var button = 'L';
         var id = -1;
-        var modelId = -1;
+        var modelId = undefined;
 
         //set initial conditions so that different gestures can be identified
         var handleMouseDown = (event: MouseEvent) => {
@@ -1029,12 +1029,10 @@ export class Viewer {
 
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            modelId = viewer.getID(viewX, viewY, true);
+            // modelId = viewer.getID(viewX, viewY, true);
 
             // get product ID from reduced render ID
-            if (modelId) {
-                id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
-            }
+            id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
 
             /**
             * Occurs when mousedown event happens on underlying canvas.
@@ -1204,12 +1202,10 @@ export class Viewer {
 
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            modelId = viewer.getID(viewX, viewY, true);
+            // modelId = viewer.getID(viewX, viewY, true);
 
             // get product ID from reduced render ID
-            if (modelId) {
-                id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
-            }
+            id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
 
             /**
             * Occurs when mousedown event happens on underlying canvas.
@@ -1350,7 +1346,7 @@ export class Viewer {
         var lastTap = new Date();
 
         var id = -1;
-        var modelId = -1;
+        var modelId = undefined;
 
         //set initial conditions so that different gestures can be identified
         var handleTouchStart = (event: TouchEvent) => {
@@ -1369,11 +1365,10 @@ export class Viewer {
 
             //this is for picking
             id = this.getID(viewX, viewY);
-            modelId = this.getID(viewX, viewY, true);
+            // modelId = this.getID(viewX, viewY, true);
+
             // get product ID from reduced render ID
-            if (modelId) {
-                id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
-            }
+            id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
 
             var now = new Date();
             var isDoubleTap = (now.getTime() - lastTap.getTime()) < maximumLengthBetweenDoubleTaps;
