@@ -241,7 +241,7 @@ export class ModelHandle {
         model.transformations = null;
         model.styleIndices = null;
 
-        model.vertices = null;
+        // model.vertices = null;
         model.matrices = null;
 
         this._feedCompleted = true;

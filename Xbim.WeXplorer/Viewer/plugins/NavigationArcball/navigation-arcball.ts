@@ -13,7 +13,7 @@ const interpolateAngle = (a, b, t) => {
     const diff = (b - a) % PI_2;
     const shortestAngle = ((2 * diff) % PI_2) - diff;
 
-    return a + (shortestAngle * t); 
+    return a + (shortestAngle * t);
 }
 
 const mergeBboxes = bboxes => {
@@ -69,7 +69,7 @@ export class NavigationArcball implements IPlugin
     // original navigation function
     private _originalNavigate: (type: string, deltaX: number, deltaY: number) => void;
     private _viewer: Viewer;
-    
+
 
     // called by the viewer when plugin is added
     init(viewer: Viewer): void {
@@ -83,7 +83,7 @@ export class NavigationArcball implements IPlugin
     }
 
     /**
-     * Use this boolean switch to activate and deactivate the plugin. This will supposingly be bound to 
+     * Use this boolean switch to activate and deactivate the plugin. This will supposingly be bound to
      * some user interaction (like a button in the toolbar).
      * @member {boolean} NavigationXYPlane#isActive
      * */
@@ -341,7 +341,7 @@ export class NavigationArcball implements IPlugin
             : this._distance + (this._targetDistance - this._distance) * t;
 
         const interpolating = t < 1.0
-        
+
         if (!interpolating && this._interpolating) {
             this._setDistance(this._targetDistance);
             this._setYaw(this._targetYaw);
@@ -367,7 +367,7 @@ export class NavigationArcball implements IPlugin
         if (!viewer._handles || !viewer._handles[0] || this._interpolating) return;
 
         this._lastInteraction = Date.now();
-        
+
         switch (type) {
             case 'free-orbit':
             case 'fixed-orbit':
@@ -399,7 +399,7 @@ export class NavigationArcball implements IPlugin
         if (!ids) {
             return;
         }
-    
+
         const bboxes = ids.map(id => (
             this._viewer.forHandleOrAll((handle: ModelHandle) => {
                 let map = handle.getProductMap(id);
@@ -430,7 +430,7 @@ export class NavigationArcball implements IPlugin
             yaw = angle
         }
 
-        if (interpolate) {            
+        if (interpolate) {
             this._setTargetYaw(yaw);
             this._setTargetPitch(pitch);
 

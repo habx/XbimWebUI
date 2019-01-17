@@ -10,6 +10,7 @@ export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
 export { NavigationArcball } from "./plugins/NavigationArcball/navigation-arcball";
 export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
+export { RayPicking } from "./plugins/RayPicking/ray-picking";
 export { ViewerSession } from './transactions/viewer-session';
 export declare class Viewer {
     /**

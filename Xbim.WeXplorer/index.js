@@ -10,4 +10,5 @@ module.exports = {
   xPulseHighlight: xPulseHighlight,
   xNavigationCube: xNavigationCube,
   xNavigationHome: xNavigationHome,
+  xRayPicking: xRayPicking,
 }

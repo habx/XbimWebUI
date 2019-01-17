@@ -29,6 +29,8 @@ var navigation_arcball_1 = require("./plugins/NavigationArcball/navigation-arcba
 exports.NavigationArcball = navigation_arcball_1.NavigationArcball;
 var pulse_highlight_1 = require("./plugins/PulseHighlight/pulse-highlight");
 exports.PulseHighlight = pulse_highlight_1.PulseHighlight;
+var ray_picking_1 = require("./plugins/RayPicking/ray-picking");
+exports.RayPicking = ray_picking_1.RayPicking;
 var viewer_session_1 = require("./transactions/viewer-session");
 exports.ViewerSession = viewer_session_1.ViewerSession;
 var Viewer = /** @class */ (function () {
@@ -891,7 +893,7 @@ var Viewer = /** @class */ (function () {
             var viewY = viewer._height - (startY - r.top);
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            // modelId = viewer.getID(viewX, viewY, true);
+            modelId = viewer.getID(viewX, viewY, true);
             // get product ID from reduced render ID
             id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             /**
@@ -1027,7 +1029,7 @@ var Viewer = /** @class */ (function () {
             var viewY = viewer._height - (startY - r.top);
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            // modelId = viewer.getID(viewX, viewY, true);
+            modelId = viewer.getID(viewX, viewY, true);
             // get product ID from reduced render ID
             id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             /**
@@ -1171,7 +1173,7 @@ var Viewer = /** @class */ (function () {
             var viewY = _this._height - (lastTouchY - r.top);
             //this is for picking
             id = _this.getID(viewX, viewY);
-            // modelId = this.getID(viewX, viewY, true);
+            modelId = _this.getID(viewX, viewY, true);
             // get product ID from reduced render ID
             id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
             var now = new Date();

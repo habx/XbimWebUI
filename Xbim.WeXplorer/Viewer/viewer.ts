@@ -20,6 +20,7 @@ export { NavigationHome } from "./plugins/NavigationHome/navigation-home";
 export { NavigationXYPlane } from "./plugins/NavigationXYPlane/navigation-xy-plane";
 export { NavigationArcball } from "./plugins/NavigationArcball/navigation-arcball";
 export { PulseHighlight } from "./plugins/PulseHighlight/pulse-highlight";
+export { RayPicking } from "./plugins/RayPicking/ray-picking";
 
 export { ViewerSession } from './transactions/viewer-session';
 
@@ -1029,7 +1030,7 @@ export class Viewer {
 
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            // modelId = viewer.getID(viewX, viewY, true);
+            modelId = viewer.getID(viewX, viewY, true);
 
             // get product ID from reduced render ID
             id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
@@ -1202,7 +1203,7 @@ export class Viewer {
 
             //this is for picking
             id = viewer.getID(viewX, viewY);
-            // modelId = viewer.getID(viewX, viewY, true);
+            modelId = viewer.getID(viewX, viewY, true);
 
             // get product ID from reduced render ID
             id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
@@ -1365,7 +1366,7 @@ export class Viewer {
 
             //this is for picking
             id = this.getID(viewX, viewY);
-            // modelId = this.getID(viewX, viewY, true);
+            modelId = this.getID(viewX, viewY, true);
 
             // get product ID from reduced render ID
             id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
