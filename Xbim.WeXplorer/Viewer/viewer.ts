@@ -1104,6 +1104,35 @@ export class Viewer {
         };
 
         var handleMouseMove = (event: MouseEvent) => {
+            //get coordinates within canvas (with the right orientation)
+            var r = viewer._canvas.getBoundingClientRect();
+            var viewX = event.clientX - r.left;
+            var viewY = viewer._height - (event.clientY - r.top);
+
+            const previousId = id;
+            const previousModelId = modelId;
+
+            //this is for picking
+            id = viewer.getID(viewX, viewY);
+            modelId = viewer.getID(viewX, viewY, true);
+
+            // get product ID from reduced render ID
+            id = this.forHandleOrAll(h => { return h.getProductId(id); }, modelId)
+
+            if (id !== previousId || previousModelId !== modelId) {
+                if (previousId && previousId !== -1) {
+                    viewer.fire('mouseleave', { id: previousId, model: previousModelId });
+                }
+
+                if (id && id !== -1) {
+                    viewer.fire('mouseenter', { id: id, model: modelId });
+                }
+            }
+
+            if (id) {
+                viewer.fire('mousemove', { id: id, model: modelId });
+            }
+
             if (!mouseDown) {
                 return;
             }
@@ -1328,7 +1357,7 @@ export class Viewer {
             }
         }
 
-        var handleTouchEnd = (event: TouchEvent) => {
+        var handleTouchHand = (event: TouchEvent) => {
             if (event.touches.length === 0) {
                 viewer.fire('movestop', {});
             }

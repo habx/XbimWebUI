@@ -952,6 +952,28 @@ var Viewer = /** @class */ (function () {
             viewer.enableTextSelection();
         };
         var handleMouseMove = function (event) {
+            //get coordinates within canvas (with the right orientation)
+            var r = viewer._canvas.getBoundingClientRect();
+            var viewX = event.clientX - r.left;
+            var viewY = viewer._height - (event.clientY - r.top);
+            var previousId = id;
+            var previousModelId = modelId;
+            //this is for picking
+            id = viewer.getID(viewX, viewY);
+            modelId = viewer.getID(viewX, viewY, true);
+            // get product ID from reduced render ID
+            id = _this.forHandleOrAll(function (h) { return h.getProductId(id); }, modelId);
+            if (id !== previousId || previousModelId !== modelId) {
+                if (previousId && previousId !== -1) {
+                    viewer.fire('mouseleave', { id: previousId, model: previousModelId });
+                }
+                if (id && id !== -1) {
+                    viewer.fire('mouseenter', { id: id, model: modelId });
+                }
+            }
+            if (id) {
+                viewer.fire('mousemove', { id: id, model: modelId });
+            }
             if (!mouseDown) {
                 return;
             }
@@ -1141,7 +1163,7 @@ var Viewer = /** @class */ (function () {
                 _this.navigate('pan', panFactor * directionX, panFactor * directionY);
             }
         };
-        var handleTouchEnd = function (event) {
+        var handleTouchHand = function (event) {
             if (event.touches.length === 0) {
                 viewer.fire('movestop', {});
             }

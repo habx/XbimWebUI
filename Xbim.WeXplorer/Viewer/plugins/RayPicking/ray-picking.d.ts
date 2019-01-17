@@ -4,15 +4,16 @@ export declare class RayPicking implements IPlugin {
      * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
      * @name RayPicking
      * @constructor
-     * @classdesc This is a plugin for xViewer which renders the highlighted parts in a pulsating effect. It is customizable in terms of alpha
-     * behaviour and pulse period. Use of plugin:
+     * @classdesc This is a plugin for Viewer which does picking by casting a ray to see which elements are
+     * under the mouse. Best performance when a only subset of elements are pickable
      *
-     *     var pulseHighlight = new xRayPicking();
-     *     viewer.addPlugin(pulseHighlight);
+     *     var rayPicking = new RayPicking();
+     *     viewer.addPlugin(rayPicking);
      *
     */
     constructor();
     private _initialized;
+    accurate: boolean;
     private viewer;
     init(viewer: Viewer): void;
     private getID;
