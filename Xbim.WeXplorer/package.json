@@ -1,6 +1,6 @@
 {
   "name": "@habx/xbim-viewer",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "main": "Build/xbim-viewer.js",
   "devDependencies": {
     "dts-bundle": "^0.7.2",

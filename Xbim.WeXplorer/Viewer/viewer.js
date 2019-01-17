@@ -1141,7 +1141,7 @@ var Viewer = /** @class */ (function () {
                 _this.navigate('pan', panFactor * directionX, panFactor * directionY);
             }
         };
-        var handleTouchHand = function (event) {
+        var handleTouchEnd = function (event) {
             if (event.touches.length === 0) {
                 viewer.fire('movestop', {});
             }

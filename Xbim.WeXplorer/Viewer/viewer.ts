@@ -1328,7 +1328,7 @@ export class Viewer {
             }
         }
 
-        var handleTouchHand = (event: TouchEvent) => {
+        var handleTouchEnd = (event: TouchEvent) => {
             if (event.touches.length === 0) {
                 viewer.fire('movestop', {});
             }
