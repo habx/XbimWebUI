@@ -94,6 +94,8 @@ export class RayPicking implements IPlugin {
 
   private _initialized: boolean = false;
 
+  public accurate: boolean = true;
+
   private viewer: Viewer;
 
   public init(viewer: Viewer) {
@@ -146,12 +148,18 @@ export class RayPicking implements IPlugin {
 
                 if (triangleHit !== false) {
                   hit = true;
+
+                  if (!this.accurate && triangleHit < distance) {
+                    distance = triangleHit;
+                    this._hitProduct = product;
+                    this._hitHandle = handle;
+                  }
                 }
               })
 
               // if bbox was hit there is a chance the geometry of the element will intersect with the
               // ray. Let's try each triangle of the geometry
-              if (hit) {
+              if (this.accurate && hit) {
                 const spans = product.spans;
 
                 hit = false;
