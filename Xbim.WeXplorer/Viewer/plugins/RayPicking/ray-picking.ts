@@ -127,6 +127,10 @@ export class RayPicking implements IPlugin {
 
       const ray = this._screenToWorldRay(x, y);
 
+      if (!ray) {
+        return null;
+      }
+
       let distance = Infinity;
 
       viewer._handles.forEach((handle) => {
@@ -269,6 +273,10 @@ export class RayPicking implements IPlugin {
       [-1.0, -1.0, 2.0, 2.0]
     );
 
+    if (!unprojectedPosition) {
+      return null;
+    }
+
     const rayOriginPosition = viewer.getCameraPosition()
 
     const rayDirection = vec3.normalize(
@@ -289,6 +297,10 @@ export class RayPicking implements IPlugin {
   private _unproject(x, y, view, proj, viewport) {
     const inverse = mat4.invert(mat4.create(), mat4.mul(mat4.create(), proj, view));
 
+    if (!inverse) {
+      return null;
+    }
+           
     const tmp = [x, y, 1.0, 1.0];
     tmp[0] = (tmp[0] - viewport[0]) / viewport[2];
     tmp[1] = (tmp[1] - viewport[1]) / viewport[3];

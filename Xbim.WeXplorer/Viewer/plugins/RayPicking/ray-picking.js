@@ -107,6 +107,9 @@ var RayPicking = /** @class */ (function () {
             var pickableProducts_1 = viewer._pickableProducts;
             var picked = [];
             var ray_1 = this._screenToWorldRay(x, y);
+            if (!ray_1) {
+                return null;
+            }
             var distance_1 = Infinity;
             viewer._handles.forEach(function (handle) {
                 if (!handle.stopped && handle.pickable) {
@@ -214,6 +217,9 @@ var RayPicking = /** @class */ (function () {
         var width = viewer._width;
         var height = viewer._height;
         var unprojectedPosition = this._unproject((2 * x / width) - 1, (2 * y / height) - 1, viewer.mvMatrix, viewer._pMatrix, [-1.0, -1.0, 2.0, 2.0]);
+        if (!unprojectedPosition) {
+            return null;
+        }
         var rayOriginPosition = viewer.getCameraPosition();
         var rayDirection = vec3_1.vec3.normalize(vec3_1.vec3.create(), vec3_1.vec3.sub(vec3_1.vec3.create(), unprojectedPosition, rayOriginPosition));
         return {
@@ -223,6 +229,9 @@ var RayPicking = /** @class */ (function () {
     };
     RayPicking.prototype._unproject = function (x, y, view, proj, viewport) {
         var inverse = mat4_1.mat4.invert(mat4_1.mat4.create(), mat4_1.mat4.mul(mat4_1.mat4.create(), proj, view));
+        if (!inverse) {
+            return null;
+        }
         var tmp = [x, y, 1.0, 1.0];
         tmp[0] = (tmp[0] - viewport[0]) / viewport[2];
         tmp[1] = (tmp[1] - viewport[1]) / viewport[3];
