@@ -358,6 +358,13 @@ export class NavigationArcball implements IPlugin
 
         mat4.lookAt(this._viewer.mvMatrix, eye, origin, [0, 0, 1]);
 
+        this._viewer.fire('cameraupdate', {
+            position: eye,
+            target: origin,
+            pitch,
+            yaw,
+        })
+        
         this._dirty = false;
     }
 

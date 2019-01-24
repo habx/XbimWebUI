@@ -324,6 +324,12 @@ var NavigationArcball = /** @class */ (function () {
         eye[1] = origin[1] + distance * Math.sin(yaw) * Math.sin(pitch);
         eye[2] = origin[2] + distance * Math.cos(pitch);
         mat4_1.mat4.lookAt(this._viewer.mvMatrix, eye, origin, [0, 0, 1]);
+        this._viewer.fire('cameraupdate', {
+            position: eye,
+            target: origin,
+            pitch: pitch,
+            yaw: yaw,
+        });
         this._dirty = false;
     };
     NavigationArcball.prototype.navigate = function (type, deltaX, deltaY) {
