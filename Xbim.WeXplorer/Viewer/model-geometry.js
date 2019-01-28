@@ -260,6 +260,7 @@ var ModelGeometry = /** @class */ (function () {
                                     transformedVertex[1] += normal[1] * offsetRatio;
                                     transformedVertex[2] += normal[2] * offsetRatio;
                                 }
+                                // Normalize vertices
                                 _this.vertices[3 * iIndex] = transformedVertex[0];
                                 _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                                 _this.vertices[3 * iIndex + 2] = transformedVertex[2];

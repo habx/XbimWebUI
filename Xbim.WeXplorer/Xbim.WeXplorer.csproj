@@ -171,6 +171,8 @@
     <TypeScriptCompile Include="Viewer\plugins\NavigationXYPlane\navigation-xy-plane.ts" />
     <Content Include="Viewer\plugins\PulseHighlight\pulse_fshader.c" />
     <Content Include="Viewer\plugins\PulseHighlight\pulse_vshader.c" />
+    <Content Include="Viewer\shaders\light_shadow_fragment.c" />
+    <Content Include="Viewer\shaders\light_shadow_vertex.c" />
     <Content Include="webpack.config.js" />
     <Content Include="Examples\WexBimStreamTest\wexbimtest.html" />
     <Content Include="Libs\gl-matrix\LICENSE.md" />

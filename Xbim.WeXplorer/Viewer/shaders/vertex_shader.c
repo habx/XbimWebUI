@@ -8,6 +8,10 @@ attribute highp vec2 aNormal;
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 
+// Light
+uniform mat4 uLightMVMatrix;
+uniform mat4 uLightPMatrix;
+
 //Lights
 uniform vec4 ulightA;
 uniform vec4 ulightB;
@@ -39,6 +43,10 @@ varying vec4 vBackColor;
 varying vec3 vPosition;
 //state passed to fragment shader
 varying float vDiscard;
+
+varying vec4 shadowPos;
+
+const mat4 texUnitConverter = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 
 vec3 getNormal() {
 	float U = aNormal[0];
@@ -108,6 +116,8 @@ void main(void) {
 	vec3 vertex = aPosition;
 	vec3 normal = getNormal();
 	vec3 backNormal = normal * -1.0;
+
+    shadowPos = texUnitConverter * uLightPMatrix * uLightMVMatrix * vec4(aPosition, 1.0);
 
 	//product colour coding
 	if (uColorCoding == -2) {

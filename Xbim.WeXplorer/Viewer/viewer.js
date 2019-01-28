@@ -47,6 +47,12 @@ var Viewer = /** @class */ (function () {
     * @param {string | HTMLCanvasElement} canvas - string ID of the canvas or HTML canvas element.
     */
     function Viewer(canvas) {
+        this.shadowMapSize = 2048;
+        this.shadowMapBias = 0.007;
+        this.shadowMapProjectionWidth = 60;
+        this.shadowMapZNear = 10;
+        this.shadowMapZFar = 150;
+        this.shadowUpdateFreq = 5;
         this._lastActiveHandlesCount = 0;
         if (typeof (canvas) == 'undefined') {
             throw 'Canvas has to be defined';
@@ -210,6 +216,7 @@ var Viewer = /** @class */ (function () {
         this._distance = 0;
         //shader program used for rendering
         this._shaderProgram = null;
+        this._lightShadowShaderProgram = null;
         //Array of handles which can eventually contain handles to one or more models.
         //Models are loaded using 'load()' function.
         this._handles = [];
@@ -773,6 +780,8 @@ var Viewer = /** @class */ (function () {
             var maxSize = Math.max(region.bbox[3], region.bbox[4], region.bbox[5]);
             viewer.perspectiveCamera.far = maxSize * 50;
             viewer.perspectiveCamera.near = meter / 10.0;
+            console.log(viewer.perspectiveCamera.far);
+            console.log(viewer.perspectiveCamera.near);
             //set orthogonalCamera boundaries so that it makes a sense
             viewer.orthogonalCamera.far = viewer.perspectiveCamera.far;
             viewer.orthogonalCamera.near = viewer.perspectiveCamera.near;
@@ -845,8 +854,19 @@ var Viewer = /** @class */ (function () {
         gl.attachShader(this._shaderProgram, vertexShader);
         gl.attachShader(this._shaderProgram, fragmentShader);
         gl.linkProgram(this._shaderProgram);
+        // light shadow fragment shader
+        var lightShadowfragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+        compile(lightShadowfragmentShader, shaders_1.Shaders.light_shadow_fragment);
+        // light shadow vertex shader (the more complicated one)
+        var lightShadowVertexShader = gl.createShader(gl.VERTEX_SHADER);
+        compile(lightShadowVertexShader, shaders_1.Shaders.light_shadow_vertex);
+        //link program
+        this._lightShadowShaderProgram = gl.createProgram();
+        gl.attachShader(this._lightShadowShaderProgram, lightShadowVertexShader);
+        gl.attachShader(this._lightShadowShaderProgram, lightShadowfragmentShader);
+        gl.linkProgram(this._lightShadowShaderProgram);
         if (!gl.getProgramParameter(this._shaderProgram, gl.LINK_STATUS)) {
-            this.error('Could not initialise shaders ');
+            this.error('Could not initialize shaders ');
         }
         gl.useProgram(this._shaderProgram);
     };
@@ -855,6 +875,8 @@ var Viewer = /** @class */ (function () {
         //create pointers to uniform variables for transformations
         this._pMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uPMatrix');
         this._mvMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uMVMatrix');
+        this._lightPMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uLightPMatrix');
+        this._lightMVMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uLightMVMatrix');
         this._lightAUniformPointer = gl.getUniformLocation(this._shaderProgram, 'ulightA');
         this._lightBUniformPointer = gl.getUniformLocation(this._shaderProgram, 'ulightB');
         this._colorCodingUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uColorCoding');
@@ -866,6 +888,9 @@ var Viewer = /** @class */ (function () {
         this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uRenderingMode');
         this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uHighlightColour');
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uStateStyleSampler');
+        this._depthColorSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uDepthColorTexture');
+        this._shadowMapSizeUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSize');
+        this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
         this._pointers = new ModelPointers(gl, this._shaderProgram);
     };
     Viewer.prototype._initMouseEvents = function () {
@@ -1289,13 +1314,93 @@ var Viewer = /** @class */ (function () {
         //apply transformation in right order
         this.mvMatrix = mat4_1.mat4.multiply(mat4_1.mat4.create(), transform, this.mvMatrix);
     };
+    Viewer.prototype._initShadow = function () {
+        var gl = this.gl;
+        var size = this.shadowMapSize;
+        gl.useProgram(this._lightShadowShaderProgram);
+        var shadowFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFramebuffer);
+        this._shadowDepthTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        var renderBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowDepthTexture, 0);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderBuffer);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        // We create an orthographic projection and view matrix from which our light
+        // will vie the scene
+        this._lightProjectionMatrix = mat4_1.mat4.create();
+        this._lightPitch = 0.1 * Math.PI;
+        this._lightYaw = 0;
+        this._lightMViewMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), vec3_1.vec3.fromValues(1, 1, 1), vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
+        this._shadowPMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightPMatrix');
+        this._shadowMVMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightMVMatrix');
+        // gl.uniformMatrix4fv(this._shadowPMatrix, false, this._lightProjectionMatrix)
+        gl.uniformMatrix4fv(this._shadowPMatrix, false, this._pMatrix);
+        gl.uniformMatrix4fv(this._shadowMVMatrix, false, this._lightMViewMatrix);
+        this._lightShadowPositionAttrPointer = gl.getAttribLocation(this._lightShadowShaderProgram, "aPosition");
+        //enable vertex attributes arrays
+        gl.enableVertexAttribArray(this._lightShadowPositionAttrPointer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        this._shadowFrameBuffer = shadowFramebuffer;
+        gl.useProgram(this._shaderProgram);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
+        gl.uniform1i(this._depthColorSamplerUniform, 0);
+    };
+    Viewer.prototype.drawShadowMap = function () {
+        var _this = this;
+        var meter = this._handles && this._handles.length && this._handles[0].model.meter;
+        if (!meter) {
+            return;
+        }
+        var gl = this.gl;
+        var size = this.shadowMapSize;
+        var shadowFrameBuffer = this._shadowFrameBuffer;
+        gl.useProgram(this._lightShadowShaderProgram);
+        // Draw to our off screen drawing buffer
+        gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFrameBuffer);
+        var width = this._renderWidth;
+        var height = this._renderHeight;
+        // Set the viewport to our shadow texture's size
+        gl.viewport(0, 0, size, size);
+        gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        this._lightYaw += 0.0025 * Math.PI;
+        var pitch = -this._lightPitch + (Math.PI / 2);
+        var eye = [0, 0, 0];
+        var distance = 150 * meter;
+        eye[0] = distance * Math.cos(this._lightYaw) * Math.sin(pitch);
+        eye[1] = distance * Math.sin(this._lightYaw) * Math.sin(pitch);
+        eye[2] = distance * Math.cos(pitch);
+        this._lightMViewMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), eye, vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
+        this._lightProjectionMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, this.shadowMapZNear * meter, this.shadowMapZFar * meter);
+        gl.uniformMatrix4fv(this._shadowPMatrix, false, this._lightProjectionMatrix);
+        gl.uniformMatrix4fv(this._shadowMVMatrix, false, this._lightMViewMatrix);
+        //two runs, first for solids from all models, second for transparent objects from all models
+        //this makes sure that transparent objects are always rendered at the end.
+        this._handles.forEach(function (handle) {
+            if (!handle.stopped) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
+                gl.vertexAttribPointer(_this._lightShadowPositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
+                handle.draw();
+            }
+        });
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.useProgram(this._shaderProgram);
+    };
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.
     * If you want interactive model call {@link Viewer#start start()} method. {@link Viewer#frame Frame event} is fired when draw call is finished.
     * @function Viewer#draw
     * @fires Viewer#frame
     */
-    Viewer.prototype.draw = function () {
+    Viewer.prototype.draw = function (nbFrame) {
         var _this = this;
         if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this.isChanged())) {
             if (!this._userAction)
@@ -1335,12 +1440,20 @@ var Viewer = /** @class */ (function () {
         //set uniforms (these may quickly change between calls to draw)
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.mvMatrix);
+        // gl.uniformMatrix4fv(this._lightPMatrixUniformPointer, false, this._pMatrix);
+        gl.uniformMatrix4fv(this._lightPMatrixUniformPointer, false, this._lightProjectionMatrix);
+        gl.uniformMatrix4fv(this._lightMVMatrixUniformPointer, false, this._lightMViewMatrix);
         gl.uniform4fv(this._lightAUniformPointer, new Float32Array(this.lightA));
         gl.uniform4fv(this._lightBUniformPointer, new Float32Array(this.lightB));
         //overlay styles
         gl.activeTexture(gl.TEXTURE4);
         gl.bindTexture(gl.TEXTURE_2D, this._stateStyleTexture);
         gl.uniform1i(this._stateStyleSamplerUniform, 4);
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
+        gl.uniform1i(this._depthColorSamplerUniform, 2);
+        gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize);
+        gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias);
         //clipping
         gl.uniform1i(this._clippingAUniformPointer, this._clippingA ? 1 : 0);
         gl.uniform1i(this._clippingBUniformPointer, this._clippingB ? 1 : 0);
@@ -1407,6 +1520,9 @@ var Viewer = /** @class */ (function () {
             }
             plugin.onAfterDraw();
         });
+        if ((nbFrame % this.shadowUpdateFreq) === 0) {
+            this.drawShadowMap();
+        }
         /**
          * Occurs after every frame in animation. Don't do anything heavy weighted in here as it will happen about 60 times in a second all the time.
          *
@@ -1668,6 +1784,7 @@ var Viewer = /** @class */ (function () {
     * @param {Number} id [optional] - Optional ID of the model to be stopped. You can get this ID from {@link Viewer#event:loaded loaded} event.
     */
     Viewer.prototype.start = function (id) {
+        this._initShadow();
         if (typeof (id) !== 'undefined') {
             var model = this._handles.filter(function (h) { return h.id === id; }).pop();
             if (typeof (model) === 'undefined')
@@ -1698,7 +1815,7 @@ var Viewer = /** @class */ (function () {
             }
             if (viewer._isRunning) {
                 window.requestAnimationFrame(tick);
-                viewer.draw();
+                viewer.draw(counter);
             }
         }
         tick();
