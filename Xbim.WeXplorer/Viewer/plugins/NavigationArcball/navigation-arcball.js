@@ -331,7 +331,6 @@ var NavigationArcball = /** @class */ (function () {
             yaw: yaw,
         });
         this._dirty = false;
-        this._viewer._userAction = true;
     };
     NavigationArcball.prototype.navigate = function (type, deltaX, deltaY) {
         var viewer = this._viewer;
