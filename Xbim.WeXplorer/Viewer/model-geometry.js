@@ -161,7 +161,8 @@ var ModelGeometry = /** @class */ (function () {
                                 renderId: i + 1,
                                 type: prodType,
                                 bBox: bBox,
-                                spans: []
+                                spans: [],
+                                state: state_1.State.UNDEFINED,
                             };
                             this.productIdLookup[i + 1] = productLabel;
                             this.productMaps[productLabel] = map;

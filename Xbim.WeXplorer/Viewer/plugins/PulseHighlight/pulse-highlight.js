@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var state_1 = require("../../state");
 var pulse_highlight_shaders_1 = require("./pulse-highlight-shaders");
+var mat4_1 = require("../../matrix/mat4");
+var vec3_1 = require("../../matrix/vec3");
 var PulseHighlight = /** @class */ (function () {
     /**
      * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
@@ -20,42 +22,27 @@ var PulseHighlight = /** @class */ (function () {
         this._periodOffset = 0;
         this._alphaMin = 0.3;
         this._alphaMax = 0.6;
-        this._spans = [];
+        this._maps = [];
+        this._pulseEnabled = true;
         this.setState = function (state, target, modelId) {
             this._originalSetState(state, target, modelId);
-            this.updateSpans();
+            this.updateMaps();
         };
         this.resetStates = function (hideSpaces, modelId) {
             this._originalResetStates(hideSpaces, modelId);
-            this.updateSpans();
+            this.updateMaps();
         };
-        this.updateSpans = function () {
+        this.updateMaps = function () {
             var _this = this;
             this.viewer._handles.forEach(function (handle, handleIndex) {
-                var spans = [];
-                var currentSpan = [];
-                for (var i = 0; i < handle.model.states.length; i += 2) {
-                    if (handle.model.states[i] === state_1.State.HIGHLIGHTED) {
-                        var index = i / 2;
-                        if (!currentSpan.length) {
-                            currentSpan[0] = index;
-                            currentSpan[1] = index;
-                        }
-                        else if (currentSpan[1] === index - 1) {
-                            currentSpan[1] = index;
-                        }
-                        else {
-                            currentSpan[1] += 1;
-                            spans.push(currentSpan);
-                            currentSpan = [index, index];
-                        }
+                var maps = [];
+                for (var n in handle.model.productMaps) {
+                    var map = handle.model.productMaps[n];
+                    if (map.state === state_1.State.HIGHLIGHTED) {
+                        maps.push(map);
                     }
                 }
-                if (currentSpan.length) {
-                    currentSpan[1] += 1;
-                    spans.push(currentSpan);
-                }
-                _this._spans[handleIndex] = spans;
+                _this._maps[handleIndex] = maps;
             });
         };
         this.drawHandle = function (handle, handleIndex) {
@@ -69,12 +56,29 @@ var PulseHighlight = /** @class */ (function () {
             gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
             gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
             gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-            var spans = this._spans[handleIndex];
-            if (spans && spans.length) {
-                spans.forEach(function (span) {
-                    gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+            var maps = this._maps[handleIndex];
+            if (maps && maps.length) {
+                maps.sort(this._zSortFunction.bind(this));
+                maps.forEach(function (map) {
+                    var spans = map.spans;
+                    spans.forEach(function (span) {
+                        gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                    });
                 }, handle);
             }
+        };
+        this.getBboxScreenSpaceDistance = function (bbox) {
+            var worldPosition = [
+                bbox[0] + bbox[3] / 2.0,
+                bbox[1] + bbox[4] / 2.0,
+                bbox[2] + bbox[5] / 2.0,
+            ];
+            var viewProjection = mat4_1.mat4.multiply(mat4_1.mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix);
+            var z = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, this.viewer.mvMatrix)[2];
+            return z;
+        };
+        this._zSortFunction = function (a, b) {
+            return this.getBboxScreenSpaceDistance(a.bBox) - this.getBboxScreenSpaceDistance(b.bBox);
         };
         this._initShader = function () {
             var gl = this.viewer.gl;
@@ -127,6 +131,20 @@ var PulseHighlight = /** @class */ (function () {
         },
         set: function (value) {
             this._alphaMax = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(PulseHighlight.prototype, "pulseEnabled", {
+        /**
+        * Enabled pulse or not
+        * @member {Boolean} PulseHighlight#pulseEnabled
+        */
+        get: function () {
+            return this._pulseEnabled;
+        },
+        set: function (value) {
+            this._pulseEnabled = value;
         },
         enumerable: true,
         configurable: true
@@ -189,7 +207,7 @@ var PulseHighlight = /** @class */ (function () {
         viewer['setState'] = this.setState.bind(this);
         this._originalResetStates = viewer['resetStates'].bind(viewer);
         viewer['resetStates'] = this.resetStates.bind(this);
-        this.updateSpans();
+        this.updateMaps();
     };
     PulseHighlight.prototype.onBeforeDraw = function () { };
     PulseHighlight.prototype.onBeforePick = function (id) { return false; };
@@ -197,7 +215,9 @@ var PulseHighlight = /** @class */ (function () {
         var gl = this.setActive();
         this.draw();
         this.setInactive();
-        this.viewer._userAction = true;
+        if (this._pulseEnabled) {
+            this.viewer._userAction = true;
+        }
     };
     PulseHighlight.prototype.onBeforeDrawId = function () { };
     PulseHighlight.prototype.onAfterDrawId = function () { };
@@ -235,7 +255,12 @@ var PulseHighlight = /** @class */ (function () {
         ]));
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
-        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
+        if (this._pulseEnabled) {
+            gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
+        }
+        else {
+            gl.uniform1f(this._sinUniformPointer, 1.0);
+        }
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
         this.viewer._handles.forEach(this.drawHandle.bind(this));

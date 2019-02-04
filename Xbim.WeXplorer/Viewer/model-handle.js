@@ -293,6 +293,7 @@ var ModelHandle = /** @class */ (function () {
         //shift +1 if it is an overlay colour style or 0 if it is a state.
         var shift = state <= 225 ? 1 : 0;
         maps.forEach(function (map) {
+            map.state = state;
             map.spans.forEach(function (span) {
                 //set state or style
                 for (var k = span[0]; k < span[1]; k++) {
@@ -304,6 +305,10 @@ var ModelHandle = /** @class */ (function () {
         this.bufferData(this._stateBuffer, this.model.states);
     };
     ModelHandle.prototype.resetStates = function () {
+        for (var n in this.model.productMaps) {
+            var map = this.model.productMaps[n];
+            map.state = state_1.State.UNDEFINED;
+        }
         for (var i = 0; i < this.model.states.length; i += 2) {
             this.model.states[i] = state_1.State.UNDEFINED;
         }
