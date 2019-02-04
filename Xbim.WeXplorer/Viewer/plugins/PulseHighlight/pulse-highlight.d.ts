@@ -34,9 +34,10 @@ export declare class PulseHighlight implements IPlugin {
     private _periodOffset;
     private _alphaMin;
     private _alphaMax;
-    private _spans;
+    private _maps;
     private _originalSetState;
     private _originalResetStates;
+    private _pulseEnabled;
     /**
     * Min alpha of the pulse effect
     * @member {Number} PulseHighlight#alphaMin
@@ -47,6 +48,11 @@ export declare class PulseHighlight implements IPlugin {
     * @member {Number} PulseHighlight#alphaMax
     */
     alphaMax: number;
+    /**
+    * Enabled pulse or not
+    * @member {Boolean} PulseHighlight#pulseEnabled
+    */
+    pulseEnabled: boolean;
     /**
     * Period of the pulse (in seconds)
     * @member {Number} PulseHighlight#period
@@ -64,7 +70,9 @@ export declare class PulseHighlight implements IPlugin {
     private draw;
     private setState;
     private resetStates;
-    private updateSpans;
+    private updateMaps;
     private drawHandle;
+    private getBboxScreenSpaceDistance;
+    private _zSortFunction;
     private _initShader;
 }

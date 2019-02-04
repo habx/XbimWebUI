@@ -1,10 +1,10 @@
 import { IPlugin, Viewer } from "../../viewer";
 import { State } from "../../state";
+import { ProductMap } from "../../model-geometry";
 import { PulseShaders } from "./pulse-highlight-shaders";
 import { mat4 } from "../../matrix/mat4";
 import { mat3 } from "../../matrix/mat3";
 import { vec3 } from "../../matrix/vec3";
-
 
 export class PulseHighlight implements IPlugin {
     /**
@@ -22,7 +22,7 @@ export class PulseHighlight implements IPlugin {
     }
 
     private _initialized: boolean = false;
-    
+
     private viewer: Viewer;
     private _shader: WebGLProgram;
     private _highlightingColor: number[];
@@ -49,10 +49,12 @@ export class PulseHighlight implements IPlugin {
     private _alphaMin: number = 0.3;
     private _alphaMax: number = 0.6;
 
-    private _spans = [];
+    private _maps: ProductMap[] = [];
 
     private _originalSetState: (state: State, target: number | number[], modelId?: number) => void;
     private _originalResetStates: (hideSpaces?: boolean, modelId?: number) => void;
+
+    private _pulseEnabled: boolean = true;
 
     /**
     * Min alpha of the pulse effect
@@ -74,6 +76,17 @@ export class PulseHighlight implements IPlugin {
     }
     public set alphaMax(value: number) {
         this._alphaMax = value;
+    }
+
+    /**
+    * Enabled pulse or not
+    * @member {Boolean} PulseHighlight#pulseEnabled
+    */
+    public get pulseEnabled() {
+        return this._pulseEnabled;
+    }
+    public set pulseEnabled(value: boolean) {
+        this._pulseEnabled = value;
     }
 
     /**
@@ -107,7 +120,7 @@ export class PulseHighlight implements IPlugin {
         //create own shader
         this._shader = null;
         this._initShader();
-        
+
         this._highlightingColor = this.viewer.highlightingColour;
 
         this.viewer.highlightingColour = [0.0, 0.0, 0.0, 0.0];
@@ -151,7 +164,7 @@ export class PulseHighlight implements IPlugin {
         this._originalResetStates = viewer['resetStates'].bind(viewer);
         viewer['resetStates'] = this.resetStates.bind(this);
 
-        this.updateSpans();
+        this.updateMaps();
     }
 
     public onBeforeDraw() { }
@@ -164,7 +177,9 @@ export class PulseHighlight implements IPlugin {
 
         this.setInactive();
 
-        this.viewer._userAction = true;
+        if (this._pulseEnabled) {
+            this.viewer._userAction = true;
+        }
     }
 
     public onBeforeDrawId() { }
@@ -217,7 +232,11 @@ export class PulseHighlight implements IPlugin {
 
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
-        gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
+        if (this._pulseEnabled) {
+            gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
+        } else {
+            gl.uniform1f(this._sinUniformPointer, 1.0);
+        }
 
         gl.enable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
@@ -229,43 +248,27 @@ export class PulseHighlight implements IPlugin {
     private setState = function (state: State, target: number | number[], modelId?: number) {
         this._originalSetState(state, target, modelId)
 
-        this.updateSpans()
+        this.updateMaps()
     }
 
     private resetStates = function (hideSpaces?: boolean, modelId?: number) {
         this._originalResetStates(hideSpaces, modelId)
 
-        this.updateSpans()
+        this.updateMaps()
     }
 
-    private updateSpans = function () {
+    private updateMaps = function () {
         this.viewer._handles.forEach((handle, handleIndex) => {
-            const spans = []
+            const maps = []
 
-            let currentSpan = []
-
-            for (var i = 0; i < handle.model.states.length; i += 2) {
-                if (handle.model.states[i] === State.HIGHLIGHTED) {
-                    var index = i / 2;
-                    if (!currentSpan.length) {
-                        currentSpan[0] = index
-                        currentSpan[1] = index
-                    } else if (currentSpan[1] === index - 1) {
-                        currentSpan[1] = index
-                    } else {
-                        currentSpan[1] += 1
-                        spans.push(currentSpan)
-                        currentSpan = [index, index]
-                    }
+            for (var n in handle.model.productMaps) {
+                var map = handle.model.productMaps[n];
+                if (map.state === State.HIGHLIGHTED) {
+                    maps.push(map)
                 }
             }
 
-            if (currentSpan.length) {
-                currentSpan[1] += 1
-                spans.push(currentSpan)
-            }
-
-            this._spans[handleIndex] = spans
+            this._maps[handleIndex] = maps
         })
     }
 
@@ -273,7 +276,7 @@ export class PulseHighlight implements IPlugin {
         var gl = this.viewer.gl;
 
         if (handle.stopped) return;
-        
+
         //set attributes and uniforms
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
         gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
@@ -284,13 +287,35 @@ export class PulseHighlight implements IPlugin {
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
-        const spans = this._spans[handleIndex]
+        const maps = this._maps[handleIndex];
 
-        if (spans && spans.length) {
-            spans.forEach(function (span) {
-                gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+        if (maps && maps.length) {
+            maps.sort(this._zSortFunction.bind(this));
+            maps.forEach(function (map) {
+                const spans = map.spans
+                spans.forEach(function (span) {
+                    gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                })
             }, handle);
         }
+    }
+
+    private getBboxScreenSpaceDistance = function (bbox) {
+        const worldPosition = [
+            bbox[0] + bbox[3] / 2.0,
+            bbox[1] + bbox[4] / 2.0,
+            bbox[2] + bbox[5] / 2.0,
+        ];
+
+        const viewProjection = mat4.multiply(mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix)
+
+        const z = vec3.transformMat4(vec3.create(), worldPosition, this.viewer.mvMatrix)[2]
+
+        return z
+    }
+
+    private _zSortFunction = function (a: ProductMap, b: ProductMap) {
+        return this.getBboxScreenSpaceDistance(a.bBox) - this.getBboxScreenSpaceDistance(b.bBox)
     }
 
     private _initShader = function () {

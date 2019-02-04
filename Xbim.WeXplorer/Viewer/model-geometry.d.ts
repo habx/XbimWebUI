@@ -1,4 +1,5 @@
 import { BinaryReader } from "./binary-reader";
+import { State } from "./state";
 import { ProductType } from "./product-type";
 export declare class ModelGeometry {
     normals: Uint8Array;
@@ -29,6 +30,7 @@ export declare class ProductMap {
     type: ProductType;
     bBox: Float32Array;
     spans: Array<Int32Array>;
+    state: State;
 }
 export declare class Region {
     population: number;

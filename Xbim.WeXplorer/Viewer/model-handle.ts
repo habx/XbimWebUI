@@ -377,6 +377,7 @@ export class ModelHandle {
         //shift +1 if it is an overlay colour style or 0 if it is a state.
         var shift = state <= 225 ? 1 : 0;
         maps.forEach((map) => {
+            map.state = state;
             map.spans.forEach((span) => {
                 //set state or style
                 for (var k = span[0]; k < span[1]; k++) {
@@ -390,6 +391,10 @@ export class ModelHandle {
     }
 
     public resetStates(): void {
+        for (var n in this.model.productMaps) {
+            var map = this.model.productMaps[n];
+            map.state = State.UNDEFINED;
+        }
         for (var i = 0; i < this.model.states.length; i += 2) {
             this.model.states[i] = State.UNDEFINED;
         }

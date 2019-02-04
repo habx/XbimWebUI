@@ -146,7 +146,8 @@ export class ModelGeometry {
                 renderId: i + 1,
                 type: prodType,
                 bBox: bBox,
-                spans: []
+                spans: [],
+                state: State.UNDEFINED,
             };
             this.productIdLookup[i + 1] = productLabel;
             this.productMaps[productLabel] = map;
@@ -316,6 +317,7 @@ export class ProductMap {
     type: ProductType;
     bBox: Float32Array;
     spans: Array<Int32Array>;
+    state: State;
 }
 
 export class Region {
