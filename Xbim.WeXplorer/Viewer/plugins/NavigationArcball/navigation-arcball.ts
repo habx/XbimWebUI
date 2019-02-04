@@ -366,6 +366,7 @@ export class NavigationArcball implements IPlugin
         })
         
         this._dirty = false;
+        this._viewer._userAction = true;
     }
 
     private navigate(type, deltaX, deltaY) {

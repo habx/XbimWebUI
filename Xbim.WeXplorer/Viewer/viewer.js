@@ -53,6 +53,11 @@ var Viewer = /** @class */ (function () {
         this.shadowMapZNear = 10;
         this.shadowMapZFar = 150;
         this.shadowUpdateFreq = 5;
+        this._timeSinceLastShadow = 0;
+        this._shouldUpdateShadow = true;
+        this._lightYaw = 0;
+        this._lightPitch = 0;
+        this.shadowEnabled = true;
         this._lastActiveHandlesCount = 0;
         if (typeof (canvas) == 'undefined') {
             throw 'Canvas has to be defined';
@@ -242,6 +247,34 @@ var Viewer = /** @class */ (function () {
         //this has a constant size 15 which is defined in vertex shader
         model_handle_1.ModelHandle.bufferTexture(gl, this._stateStyleTexture, this._stateStyles);
     }
+    Object.defineProperty(Viewer.prototype, "shadowLightPitch", {
+        get: function () {
+            return this._lightPitch;
+        },
+        set: function (value) {
+            if (this._lightPitch === value) {
+                return;
+            }
+            this._lightPitch = value;
+            this._shouldUpdateShadow = true;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "shadowLightYaw", {
+        get: function () {
+            return this._lightYaw;
+        },
+        set: function (value) {
+            if (this._lightYaw === value) {
+                return;
+            }
+            this._lightYaw = value;
+            this._shouldUpdateShadow = true;
+        },
+        enumerable: true,
+        configurable: true
+    });
     /**
     * This is a static function which should always be called before Viewer is instantiated.
     * It will check all prerequisites of the viewer and will report all issues. If Prerequisities.errors contain
@@ -890,6 +923,7 @@ var Viewer = /** @class */ (function () {
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uStateStyleSampler');
         this._depthColorSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uDepthColorTexture');
         this._shadowMapSizeUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSize');
+        this._shadowEnabledUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowEnabled');
         this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
         this._pointers = new ModelPointers(gl, this._shaderProgram);
     };
@@ -1062,7 +1096,7 @@ var Viewer = /** @class */ (function () {
         window.addEventListener('mouseup', function (event) { return handleMouseUp(event); }, true);
         window.addEventListener('mousemove', function (event) { return handleMouseMove(event); }, true);
         this._canvas.addEventListener('mousemove', function () {
-            viewer._userAction = true;
+            // viewer._userAction = true;
         }, true);
         //set initial conditions so that different gestures can be identified
         var handleDoubleClick = function (event) {
@@ -1335,8 +1369,6 @@ var Viewer = /** @class */ (function () {
         // We create an orthographic projection and view matrix from which our light
         // will vie the scene
         this._lightProjectionMatrix = mat4_1.mat4.create();
-        this._lightPitch = 0.1 * Math.PI;
-        this._lightYaw = 0;
         this._lightMViewMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), vec3_1.vec3.fromValues(1, 1, 1), vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
         this._shadowPMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightPMatrix');
         this._shadowMVMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightMVMatrix');
@@ -1353,8 +1385,12 @@ var Viewer = /** @class */ (function () {
         gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
         gl.uniform1i(this._depthColorSamplerUniform, 0);
     };
-    Viewer.prototype.drawShadowMap = function () {
+    Viewer.prototype.drawShadowMap = function (dT) {
         var _this = this;
+        this._timeSinceLastShadow += dT;
+        if (this._shouldUpdateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
+            return;
+        }
         var meter = this._handles && this._handles.length && this._handles[0].model.meter;
         if (!meter) {
             return;
@@ -1365,16 +1401,14 @@ var Viewer = /** @class */ (function () {
         gl.useProgram(this._lightShadowShaderProgram);
         // Draw to our off screen drawing buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFrameBuffer);
-        var width = this._renderWidth;
-        var height = this._renderHeight;
         // Set the viewport to our shadow texture's size
         gl.viewport(0, 0, size, size);
-        gl.clearColor(this.background[0] / 255, this.background[1] / 255, this.background[2] / 255, this.background[3]);
+        gl.clearColor(1.0, 1.0, 1.0, 1);
+        gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        this._lightYaw += 0.0025 * Math.PI;
         var pitch = -this._lightPitch + (Math.PI / 2);
         var eye = [0, 0, 0];
-        var distance = 150 * meter;
+        var distance = 100 * meter;
         eye[0] = distance * Math.cos(this._lightYaw) * Math.sin(pitch);
         eye[1] = distance * Math.sin(this._lightYaw) * Math.sin(pitch);
         eye[2] = distance * Math.cos(pitch);
@@ -1388,11 +1422,13 @@ var Viewer = /** @class */ (function () {
             if (!handle.stopped) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
                 gl.vertexAttribPointer(_this._lightShadowPositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
-                handle.draw();
+                handle.draw('shadow');
             }
         });
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.useProgram(this._shaderProgram);
+        this._timeSinceLastShadow = 0;
+        this._shouldUpdateShadow = false;
     };
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.
@@ -1400,13 +1436,14 @@ var Viewer = /** @class */ (function () {
     * @function Viewer#draw
     * @fires Viewer#frame
     */
-    Viewer.prototype.draw = function (nbFrame) {
+    Viewer.prototype.draw = function (frameTime) {
         var _this = this;
         if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this.isChanged())) {
-            if (!this._userAction)
+            if (!this._userAction) {
                 return;
+            }
         }
-        this._userAction = false;
+        this._userAction = true;
         this._updateSize();
         //call all before-draw plugins
         this._plugins.forEach(function (plugin) {
@@ -1454,6 +1491,7 @@ var Viewer = /** @class */ (function () {
         gl.uniform1i(this._depthColorSamplerUniform, 2);
         gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize);
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias);
+        gl.uniform1i(this._shadowEnabledUniform, this.shadowEnabled ? 1 : 0);
         //clipping
         gl.uniform1i(this._clippingAUniformPointer, this._clippingA ? 1 : 0);
         gl.uniform1i(this._clippingBUniformPointer, this._clippingB ? 1 : 0);
@@ -1520,8 +1558,8 @@ var Viewer = /** @class */ (function () {
             }
             plugin.onAfterDraw();
         });
-        if ((nbFrame % this.shadowUpdateFreq) === 0) {
-            this.drawShadowMap();
+        if (this.shadowEnabled) {
+            this.drawShadowMap(frameTime);
         }
         /**
          * Occurs after every frame in animation. Don't do anything heavy weighted in here as it will happen about 60 times in a second all the time.
@@ -1797,6 +1835,7 @@ var Viewer = /** @class */ (function () {
         var viewer = this;
         var lastTime = new Date();
         var counter = 0;
+        var lastFrameTime = Date.now();
         function tick() {
             counter++;
             if (counter == 30) {
@@ -1814,8 +1853,10 @@ var Viewer = /** @class */ (function () {
                 viewer.fire('fps', Math.floor(fps));
             }
             if (viewer._isRunning) {
+                var dt = Date.now() - lastFrameTime;
+                lastFrameTime = Date.now();
                 window.requestAnimationFrame(tick);
-                viewer.draw(counter);
+                viewer.draw(dt);
             }
         }
         tick();

@@ -69,6 +69,11 @@ export declare class Viewer {
     shadowMapZNear: number;
     shadowMapZFar: number;
     shadowUpdateFreq: number;
+    private _timeSinceLastShadow;
+    private _shouldUpdateShadow;
+    private _lightYaw;
+    private _lightPitch;
+    shadowEnabled: boolean;
     private _mvMatrixUniformPointer;
     private _pMatrixUniformPointer;
     private _lightAUniformPointer;
@@ -84,6 +89,7 @@ export declare class Viewer {
     private _stateStyleSamplerUniform;
     private _shadowBiasUniform;
     private _shadowMapSizeUniform;
+    private _shadowEnabledUniform;
     private _lightShadowPositionAttrPointer;
     private _shadowFrameBuffer;
     private _events;
@@ -104,6 +110,8 @@ export declare class Viewer {
     _pMatrix: any;
     private _pointers;
     private _pickableProducts;
+    shadowLightPitch: number;
+    shadowLightYaw: number;
     /**
     * This is a static function which should always be called before Viewer is instantiated.
     * It will check all prerequisites of the viewer and will report all issues. If Prerequisities.errors contain
@@ -327,14 +335,14 @@ export declare class Viewer {
     private _initTouchTapEvents;
     private navigate;
     private _initShadow;
-    drawShadowMap(): void;
+    drawShadowMap(dT: number): void;
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.
     * If you want interactive model call {@link Viewer#start start()} method. {@link Viewer#frame Frame event} is fired when draw call is finished.
     * @function Viewer#draw
     * @fires Viewer#frame
     */
-    draw(nbFrame: number): void;
+    draw(frameTime: number): void;
     private _lastActiveHandlesCount;
     private isChanged;
     /**

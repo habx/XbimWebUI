@@ -1,6 +1,7 @@
 ﻿import { ModelGeometry, ProductMap, Region } from "./model-geometry";
 import { State } from "./state";
 import { ModelPointers } from "./viewer";
+import { ProductType } from './product-type';
 
 //this class holds pointers to textures, uniforms and data buffers which
 //make up a model in GPU
@@ -127,7 +128,7 @@ export class ModelHandle {
     }
 
     //this function must be called AFTER 'setActive()' function which sets up active buffers and uniforms
-    public draw(mode?: 'solid' | 'transparent'): void {
+    public draw(mode?: 'solid' | 'transparent' | 'shadow'): void {
         if (this.stopped) return;
 
         var gl = this._gl;
@@ -159,6 +160,33 @@ export class ModelHandle {
 
             return;
         }
+
+        if (mode === 'shadow') {
+            // Draw everything but IFCSite
+            const ifcSiteMaps = this.getProductTypeMaps(ProductType.IFCSITE)
+
+            const spans = []
+
+            ifcSiteMaps.forEach(map => {
+                map.spans.forEach(span => {
+                    spans.push(span)
+                })
+            })
+
+
+            spans.sort((a, b) => a[0] - b[0])
+
+            let start = 0;
+            let end = this.model.transparentIndex;
+
+            spans.forEach(span => {
+                gl.drawArrays(gl.TRIANGLES, start, span[0] - start);
+                start = span[1];
+            })
+
+            gl.drawArrays(gl.TRIANGLES, start, end - start);
+            return;
+        }
     }
 
 
@@ -187,6 +215,11 @@ export class ModelHandle {
         var map = this.model.productMaps[id];
         if (typeof (map) !== 'undefined') return map;
         return null;
+    }
+
+    public getProductTypeMaps(productType: number): ProductMap[] {
+        let result = new Array<ProductMap>();
+        return this.model.productTypeMaps[productType] || []
     }
 
     public getProductMaps(ids: number[]): ProductMap[] {
@@ -377,6 +410,7 @@ export class ModelHandle {
         //shift +1 if it is an overlay colour style or 0 if it is a state.
         var shift = state <= 225 ? 1 : 0;
         maps.forEach((map) => {
+            map.state = state;
             map.spans.forEach((span) => {
                 //set state or style
                 for (var k = span[0]; k < span[1]; k++) {
@@ -390,6 +424,10 @@ export class ModelHandle {
     }
 
     public resetStates(): void {
+        for (var n in this.model.productMaps) {
+            var map = this.model.productMaps[n];
+            map.state = State.UNDEFINED;
+        }
         for (var i = 0; i < this.model.states.length; i += 2) {
             this.model.states[i] = State.UNDEFINED;
         }

@@ -35,6 +35,7 @@ export class ModelGeometry {
     //};
 
     public productMaps: { [id: number]: ProductMap; } = {};
+    public productTypeMaps: { [id: number]: [ProductMap]; } = {};
     public regions: Region[];
     public transparentIndex: number;
     public productIdLookup = [];
@@ -93,6 +94,7 @@ export class ModelGeometry {
         this.transformations = new Float32Array(numTriangles * 3);
         this.matrices = new Float32Array(square(4, numMatrices * 16));
         this.productMaps = {};
+        this.productTypeMaps = {};
         this.regions = new Array<Region>(numRegions);
 
         var iVertex = 0;
@@ -146,10 +148,13 @@ export class ModelGeometry {
                 renderId: i + 1,
                 type: prodType,
                 bBox: bBox,
-                spans: []
+                spans: [],
+                state: State.UNDEFINED,
             };
             this.productIdLookup[i + 1] = productLabel;
             this.productMaps[productLabel] = map;
+            this.productTypeMaps[prodType] = this.productTypeMaps[prodType] || []
+            this.productTypeMaps[prodType].push(map)
         }
 
         for (var iShape = 0; iShape < numShapes; iShape++) {
@@ -316,6 +321,7 @@ export class ProductMap {
     type: ProductType;
     bBox: Float32Array;
     spans: Array<Int32Array>;
+    state: State;
 }
 
 export class Region {

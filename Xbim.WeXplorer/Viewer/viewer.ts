@@ -293,6 +293,13 @@ export class Viewer {
     public shadowMapZFar: number = 150;
     public shadowUpdateFreq: number = 5;
 
+    private _timeSinceLastShadow: number = 0;
+    private _shouldUpdateShadow: boolean = true;
+    private _lightYaw: number = 0;
+    private _lightPitch: number = 0;
+
+    public shadowEnabled: boolean = true;
+
     private _mvMatrixUniformPointer: WebGLUniformLocation;
     private _pMatrixUniformPointer: WebGLUniformLocation;
     private _lightAUniformPointer: WebGLUniformLocation;
@@ -308,6 +315,7 @@ export class Viewer {
     private _stateStyleSamplerUniform: WebGLUniformLocation;
     private _shadowBiasUniform: WebGLUniformLocation;
     private _shadowMapSizeUniform: WebGLUniformLocation;
+    private _shadowEnabledUniform: WebGLUniformLocation;
 
     private _lightShadowPositionAttrPointer: number;
 
@@ -336,6 +344,32 @@ export class Viewer {
     private _pointers: ModelPointers;
 
     private _pickableProducts: number[];
+
+    public set shadowLightPitch(value: number) {
+        if (this._lightPitch === value) {
+            return;
+        }
+
+        this._lightPitch = value;
+        this._shouldUpdateShadow = true;
+    }
+
+    public get shadowLightPitch() {
+        return this._lightPitch;
+    }
+
+    public set shadowLightYaw(value: number) {
+        if (this._lightYaw === value) {
+            return;
+        }
+
+        this._lightYaw = value;
+        this._shouldUpdateShadow = true;
+    }
+
+    public get shadowLightYaw() {
+        return this._lightYaw;
+    }
 
     /**
     * This is a static function which should always be called before Viewer is instantiated.
@@ -1037,6 +1071,7 @@ export class Viewer {
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uStateStyleSampler');
         this._depthColorSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uDepthColorTexture');
         this._shadowMapSizeUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSize');
+        this._shadowEnabledUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowEnabled');
         this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
 
         this._pointers = new ModelPointers(gl, this._shaderProgram);
@@ -1256,7 +1291,7 @@ export class Viewer {
 
         this._canvas.addEventListener('mousemove',
             () => {
-                viewer._userAction = true;
+                // viewer._userAction = true;
             },
             true);
 
@@ -1589,11 +1624,7 @@ export class Viewer {
         // will vie the scene
         
         this._lightProjectionMatrix = mat4.create();
-
-        this._lightPitch = 0.1 * Math.PI;
-        this._lightYaw = 0;
-
-
+        
         this._lightMViewMatrix = mat4.lookAt(mat4.create(), vec3.fromValues(1, 1, 1), vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
 
         this._shadowPMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightPMatrix')
@@ -1619,7 +1650,13 @@ export class Viewer {
         gl.uniform1i(this._depthColorSamplerUniform, 0)
     }
 
-    public drawShadowMap() {
+    public drawShadowMap(dT: number) {
+        this._timeSinceLastShadow += dT;
+
+        if (this._shouldUpdateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
+            return;
+        }
+
         const meter = this._handles && this._handles.length && this._handles[0].model.meter
 
         if (!meter) {
@@ -1634,25 +1671,18 @@ export class Viewer {
 
         // Draw to our off screen drawing buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFrameBuffer)
-
-        var width = this._renderWidth;
-        var height = this._renderHeight;
+        
         // Set the viewport to our shadow texture's size
-        gl.viewport(0, 0, size, size)
-        gl.clearColor(this.background[0] / 255,
-            this.background[1] / 255,
-            this.background[2] / 255,
-            this.background[3]
-        );
+        gl.viewport(0, 0, size, size);
+        gl.clearColor(1.0, 1.0, 1.0, 1);
+        gl.clearDepth(1.0);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        this._lightYaw += 0.0025 * Math.PI
 
         const pitch = -this._lightPitch + (Math.PI / 2);
 
         const eye = [0, 0, 0]
-        const distance = 150 * meter
+        const distance = 100 * meter
 
         eye[0] = distance * Math.cos(this._lightYaw) * Math.sin(pitch);
         eye[1] = distance * Math.sin(this._lightYaw) * Math.sin(pitch);
@@ -1680,13 +1710,16 @@ export class Viewer {
                 gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
                 gl.vertexAttribPointer(this._lightShadowPositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
 
-                handle.draw();
+                handle.draw('shadow');
             }
         });
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
         gl.useProgram(this._shaderProgram);
+
+        this._timeSinceLastShadow = 0;
+        this._shouldUpdateShadow = false;
     }
 
     /**
@@ -1695,11 +1728,11 @@ export class Viewer {
     * @function Viewer#draw
     * @fires Viewer#frame
     */
-    public draw(nbFrame: number) {
+    public draw(frameTime: number) {
         if (!this._geometryLoaded || this._handles.length == 0 || !(this._stylingChanged || this.isChanged())) {
-            if (!this._userAction) return;
+            if (!this._userAction) { return; }
         }
-        this._userAction = false;
+        this._userAction = true;
 
         this._updateSize();
 
@@ -1779,6 +1812,7 @@ export class Viewer {
 
         gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize)
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias)
+        gl.uniform1i(this._shadowEnabledUniform, this.shadowEnabled ? 1 : 0)
 
         //clipping
         gl.uniform1i(this._clippingAUniformPointer, this._clippingA ? 1 : 0);
@@ -1854,8 +1888,9 @@ export class Viewer {
             }
             plugin.onAfterDraw();
         });
-        if ((nbFrame % this.shadowUpdateFreq) === 0) {
-            this.drawShadowMap();
+
+        if (this.shadowEnabled) {
+            this.drawShadowMap(frameTime);
         }
 
         /**
@@ -2182,6 +2217,8 @@ export class Viewer {
         var lastTime = new Date();
         var counter = 0;
 
+        var lastFrameTime = Date.now();
+
         function tick() {
             counter++;
             if (counter == 30) {
@@ -2200,8 +2237,10 @@ export class Viewer {
             }
 
             if (viewer._isRunning) {
+                const dt = Date.now() - lastFrameTime;
+                lastFrameTime = Date.now();
                 window.requestAnimationFrame(tick)
-                viewer.draw(counter)
+                viewer.draw(dt)
             }
         }
 

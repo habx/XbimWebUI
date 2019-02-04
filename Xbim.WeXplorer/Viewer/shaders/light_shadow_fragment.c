@@ -9,5 +9,5 @@ vec4 encodeFloat(float v) {
 }
 
 void main(void) {
-    gl_FragColor = encodeFloat(gl_FragCoord.z * 0.5 + 0.5);
+    gl_FragColor = encodeFloat(gl_FragCoord.z);
 }

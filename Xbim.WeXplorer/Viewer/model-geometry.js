@@ -54,6 +54,7 @@ var ModelGeometry = /** @class */ (function () {
         //	spans: [Int32Array([int, int]),Int32Array([int, int]), ...] //spanning indexes defining shapes of product and it's state
         //};
         this.productMaps = {};
+        this.productTypeMaps = {};
         this.productIdLookup = [];
         this.getNormal = function (normal1, normal2) {
             var lon = normal1 / 252.0 * 2.0 * Math.PI;
@@ -115,6 +116,7 @@ var ModelGeometry = /** @class */ (function () {
                         this.transformations = new Float32Array(numTriangles * 3);
                         this.matrices = new Float32Array(square(4, numMatrices * 16));
                         this.productMaps = {};
+                        this.productTypeMaps = {};
                         this.regions = new Array(numRegions);
                         iVertex = 0;
                         iIndexForward = 0;
@@ -161,10 +163,13 @@ var ModelGeometry = /** @class */ (function () {
                                 renderId: i + 1,
                                 type: prodType,
                                 bBox: bBox,
-                                spans: []
+                                spans: [],
+                                state: state_1.State.UNDEFINED,
                             };
                             this.productIdLookup[i + 1] = productLabel;
                             this.productMaps[productLabel] = map;
+                            this.productTypeMaps[prodType] = this.productTypeMaps[prodType] || [];
+                            this.productTypeMaps[prodType].push(map);
                         }
                         iShape = 0;
                         _a.label = 1;
@@ -260,7 +265,6 @@ var ModelGeometry = /** @class */ (function () {
                                     transformedVertex[1] += normal[1] * offsetRatio;
                                     transformedVertex[2] += normal[2] * offsetRatio;
                                 }
-                                // Normalize vertices
                                 _this.vertices[3 * iIndex] = transformedVertex[0];
                                 _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                                 _this.vertices[3 * iIndex + 2] = transformedVertex[2];
