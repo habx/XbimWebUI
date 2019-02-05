@@ -22,7 +22,7 @@ export class PulseHighlight implements IPlugin {
     }
 
     private _initialized: boolean = false;
-    
+
     private viewer: Viewer;
     private _shader: WebGLProgram;
     private _highlightingColor: number[];
@@ -120,7 +120,7 @@ export class PulseHighlight implements IPlugin {
         //create own shader
         this._shader = null;
         this._initShader();
-        
+
         this._highlightingColor = this.viewer.highlightingColour;
 
         this.viewer.highlightingColour = [0.0, 0.0, 0.0, 0.0];
@@ -260,7 +260,7 @@ export class PulseHighlight implements IPlugin {
     private updateMaps = function () {
         this.viewer._handles.forEach((handle, handleIndex) => {
             const maps = []
-            
+
             for (var n in handle.model.productMaps) {
                 var map = handle.model.productMaps[n];
                 if (map.state === State.HIGHLIGHTED) {
@@ -276,7 +276,7 @@ export class PulseHighlight implements IPlugin {
         var gl = this.viewer.gl;
 
         if (handle.stopped) return;
-        
+
         //set attributes and uniforms
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
         gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
@@ -288,11 +288,19 @@ export class PulseHighlight implements IPlugin {
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
         const maps = this._maps[handleIndex];
+<<<<<<< HEAD
         
         if (maps && maps.length) {
             maps.sort(this._zSortFunction.bind(this));
             maps.forEach(function (map) {
                 const spans = map.spans 
+=======
+
+        if (maps && maps.length) {
+            maps.sort(this._zSortFunction.bind(this));
+            maps.forEach(function (map) {
+                const spans = map.spans
+>>>>>>> habx-develop
                 spans.forEach(function (span) {
                     gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
                 })
