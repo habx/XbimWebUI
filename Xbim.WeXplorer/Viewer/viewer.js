@@ -354,10 +354,10 @@ var Viewer = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(Viewer.prototype, "ambientLightColor", {
-        // Ambient Light
         get: function () {
             return this._ambientLight.color;
         },
+        // Ambient Light
         set: function (value) {
             this._ambientLight.color = value;
         },
@@ -1619,9 +1619,9 @@ var Viewer = /** @class */ (function () {
         var directionalLight1Yaw = this._directionalLight1.yaw;
         // Directional Light 2
         gl.uniform3fv(this._directionalLight1DirectionUniformPointer, new Float32Array([
-            -Math.cos(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
-            -Math.sin(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
-            -Math.cos(directionalLight1Pitch)
+            Math.cos(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+            Math.sin(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+            Math.cos(directionalLight1Pitch)
         ]));
         // Directional Light 2
         gl.uniform3fv(this._directionalLight2ColorUniformPointer, this._directionalLight2.color);
@@ -1629,9 +1629,9 @@ var Viewer = /** @class */ (function () {
         var directionalLight2Pitch = -this._directionalLight2.pitch + (Math.PI / 2);
         var directionalLight2Yaw = this._directionalLight2.yaw;
         gl.uniform3fv(this._directionalLight2DirectionUniformPointer, new Float32Array([
-            -Math.cos(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
-            -Math.sin(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
-            -Math.cos(directionalLight2Pitch)
+            Math.cos(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+            Math.sin(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+            Math.cos(directionalLight2Pitch)
         ]));
         gl.uniform3fv(this._ambientLightColorUniformPointer, this._ambientLight.color);
         gl.uniform1f(this._ambientLightDiffuseUniformPointer, this._ambientLight.diffuse);

@@ -465,11 +465,11 @@ export class Viewer {
         return this._directionalLight2.diffuse;
     }
 
+
+    // Ambient Light
     public set ambientLightColor(value: Float32Array) {
         this._ambientLight.color = value;
     }
-
-    // Ambient Light
     public get ambientLightColor() {
         return this._ambientLight.color;
     }
@@ -1963,9 +1963,9 @@ export class Viewer {
             this._directionalLight1DirectionUniformPointer,
             new Float32Array(
                 [
-                    -Math.cos(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
-                    -Math.sin(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
-                    -Math.cos(directionalLight1Pitch)
+                    Math.cos(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+                    Math.sin(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+                    Math.cos(directionalLight1Pitch)
                 ]
             )
         );
@@ -1981,9 +1981,9 @@ export class Viewer {
             this._directionalLight2DirectionUniformPointer,
             new Float32Array(
                 [
-                    -Math.cos(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
-                    -Math.sin(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
-                    -Math.cos(directionalLight2Pitch)
+                    Math.cos(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+                    Math.sin(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+                    Math.cos(directionalLight2Pitch)
                 ]
             )
         );
