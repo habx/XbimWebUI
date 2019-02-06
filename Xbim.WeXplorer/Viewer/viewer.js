@@ -54,10 +54,28 @@ var Viewer = /** @class */ (function () {
         this.shadowMapZFar = 150;
         this.shadowUpdateFreq = 5;
         this._timeSinceLastShadow = 0;
-        this._shouldUpdateShadow = true;
-        this._lightYaw = 0;
-        this._lightPitch = 0;
+        this._directionalLight1 = {
+            color: vec3_1.vec3.fromValues(1.0, 1.0, 1.0),
+            diffuse: 0.5,
+            specular: 1.0,
+            yaw: 0,
+            pitch: 0,
+            updateShadow: true,
+        };
+        this._directionalLight2 = {
+            color: vec3_1.vec3.fromValues(1.0, 1.0, 1.0),
+            diffuse: 0.5,
+            specular: 1.0,
+            yaw: 0,
+            pitch: 0,
+            updateShadow: false,
+        };
+        this._ambientLight = {
+            color: vec3_1.vec3.fromValues(1.0, 1.0, 1.0),
+            diffuse: 0.5,
+        };
         this.shadowEnabled = true;
+        this.shadowIntensity = 0.6;
         this._lastActiveHandlesCount = 0;
         if (typeof (canvas) == 'undefined') {
             throw 'Canvas has to be defined';
@@ -133,16 +151,6 @@ var Viewer = /** @class */ (function () {
         * @member {Number[]} Viewer#highlightingColour
         */
         this.highlightingColour = [255, 173, 33, 1.0];
-        /**
-        * Array of four floats. It represents Light A's position <strong>XYZ</strong> and intensity <strong>I</strong> as [X, Y, Z, I]. Intensity should be in range 0.0 - 1.0.
-        * @member {Number[]} Viewer#lightA
-        */
-        this.lightA = [0, 1000000, 200000, 0.8];
-        /**
-        * Array of four floats. It represents Light B's position <strong>XYZ</strong> and intensity <strong>I</strong> as [X, Y, Z, I]. Intensity should be in range 0.0 - 1.0.
-        * @member {Number[]} Viewer#lightB
-        */
-        this.lightB = [0, -500000, 50000, 0.2];
         /**
         * Switch between different navigation modes for left mouse button. Allowed values: <strong> 'pan', 'zoom', 'orbit' (or 'fixed-orbit') , 'free-orbit' and 'none'</strong>. Default value is <strong>'orbit'</strong>;
         * @member {String} Viewer#navigationMode
@@ -247,30 +255,121 @@ var Viewer = /** @class */ (function () {
         //this has a constant size 15 which is defined in vertex shader
         model_handle_1.ModelHandle.bufferTexture(gl, this._stateStyleTexture, this._stateStyles);
     }
-    Object.defineProperty(Viewer.prototype, "shadowLightPitch", {
+    Object.defineProperty(Viewer.prototype, "directionalLight1Pitch", {
         get: function () {
-            return this._lightPitch;
+            return this._directionalLight1.pitch;
         },
+        // Directional Light 1
         set: function (value) {
-            if (this._lightPitch === value) {
+            if (this._directionalLight1.pitch === value) {
                 return;
             }
-            this._lightPitch = value;
-            this._shouldUpdateShadow = true;
+            this._directionalLight1.pitch = value;
+            this._directionalLight1.updateShadow = true;
         },
         enumerable: true,
         configurable: true
     });
-    Object.defineProperty(Viewer.prototype, "shadowLightYaw", {
+    Object.defineProperty(Viewer.prototype, "directionalLight1Yaw", {
         get: function () {
-            return this._lightYaw;
+            return this._directionalLight1.yaw;
         },
         set: function (value) {
-            if (this._lightYaw === value) {
+            if (this._directionalLight1.yaw === value) {
                 return;
             }
-            this._lightYaw = value;
-            this._shouldUpdateShadow = true;
+            this._directionalLight1.yaw = value;
+            this._directionalLight1.updateShadow = true;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight1Color", {
+        get: function () {
+            return this._directionalLight1.color;
+        },
+        set: function (value) {
+            this._directionalLight1.color = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight1Diffuse", {
+        get: function () {
+            return this._directionalLight1.diffuse;
+        },
+        set: function (value) {
+            this._directionalLight1.diffuse = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight2Pitch", {
+        get: function () {
+            return this._directionalLight2.pitch;
+        },
+        // Directional Light 2
+        set: function (value) {
+            if (this._directionalLight2.pitch === value) {
+                return;
+            }
+            this._directionalLight2.pitch = value;
+            this._directionalLight2.updateShadow = true;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight2Yaw", {
+        get: function () {
+            return this._directionalLight2.yaw;
+        },
+        set: function (value) {
+            if (this._directionalLight2.yaw === value) {
+                return;
+            }
+            this._directionalLight2.yaw = value;
+            this._directionalLight2.updateShadow = true;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight2Color", {
+        get: function () {
+            return this._directionalLight2.color;
+        },
+        set: function (value) {
+            this._directionalLight2.color = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "directionalLight2Diffuse", {
+        get: function () {
+            return this._directionalLight2.diffuse;
+        },
+        set: function (value) {
+            this._directionalLight2.diffuse = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "ambientLightColor", {
+        // Ambient Light
+        get: function () {
+            return this._ambientLight.color;
+        },
+        set: function (value) {
+            this._ambientLight.color = value;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Viewer.prototype, "ambientLightDiffuse", {
+        get: function () {
+            return this._ambientLight.diffuse;
+        },
+        set: function (value) {
+            this._ambientLight.diffuse = value;
         },
         enumerable: true,
         configurable: true
@@ -878,28 +977,40 @@ var Viewer = /** @class */ (function () {
         };
         //fragment shader
         var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-        compile(fragmentShader, shaders_1.Shaders.fragment_shader);
+        compile(fragmentShader, shaders_1.Shaders.fragment);
         //vertex shader (the more complicated one)
         var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-        compile(vertexShader, shaders_1.Shaders.vertex_shader);
+        compile(vertexShader, shaders_1.Shaders.vertex);
         //link program
         this._shaderProgram = gl.createProgram();
         gl.attachShader(this._shaderProgram, vertexShader);
         gl.attachShader(this._shaderProgram, fragmentShader);
         gl.linkProgram(this._shaderProgram);
+        gl.validateProgram(this._shaderProgram);
+        if (!gl.getProgramParameter(this._shaderProgram, gl.LINK_STATUS)) {
+            var info = gl.getProgramInfoLog(this._shaderProgram);
+            this.error(info);
+        }
+        if (!gl.getProgramParameter(this._shaderProgram, gl.VALIDATE_STATUS)) {
+            var info = gl.getProgramInfoLog(this._shaderProgram);
+            this.error(info);
+        }
         // light shadow fragment shader
         var lightShadowfragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-        compile(lightShadowfragmentShader, shaders_1.Shaders.light_shadow_fragment);
+        compile(lightShadowfragmentShader, shaders_1.ShadowMapShaders.fragment);
         // light shadow vertex shader (the more complicated one)
         var lightShadowVertexShader = gl.createShader(gl.VERTEX_SHADER);
-        compile(lightShadowVertexShader, shaders_1.Shaders.light_shadow_vertex);
+        compile(lightShadowVertexShader, shaders_1.ShadowMapShaders.vertex);
         //link program
         this._lightShadowShaderProgram = gl.createProgram();
         gl.attachShader(this._lightShadowShaderProgram, lightShadowVertexShader);
         gl.attachShader(this._lightShadowShaderProgram, lightShadowfragmentShader);
         gl.linkProgram(this._lightShadowShaderProgram);
-        if (!gl.getProgramParameter(this._shaderProgram, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(this._lightShadowShaderProgram, gl.LINK_STATUS)) {
             this.error('Could not initialize shaders ');
+            var compilationLog = gl.getShaderInfoLog(this._lightShadowShaderProgram);
+            console.log('Shader compiler log: ' + compilationLog);
+            return;
         }
         gl.useProgram(this._shaderProgram);
     };
@@ -908,10 +1019,18 @@ var Viewer = /** @class */ (function () {
         //create pointers to uniform variables for transformations
         this._pMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uPMatrix');
         this._mvMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uMVMatrix');
-        this._lightPMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uLightPMatrix');
-        this._lightMVMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uLightMVMatrix');
-        this._lightAUniformPointer = gl.getUniformLocation(this._shaderProgram, 'ulightA');
-        this._lightBUniformPointer = gl.getUniformLocation(this._shaderProgram, 'ulightB');
+        this._shadowMapProjectionMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uShadowMapPMatrix');
+        this._shadowMapModelViewMatrixUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uShadowMapMVMatrix');
+        this._directionalLight1ColorUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight1Color');
+        this._directionalLight1DiffuseUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight1Diffuse');
+        this._directionalLight1SpecularUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight1Specular');
+        this._directionalLight1DirectionUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight1Direction');
+        this._directionalLight2ColorUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight2Color');
+        this._directionalLight2DiffuseUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight2Diffuse');
+        this._directionalLight2SpecularUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight2Specular');
+        this._directionalLight2DirectionUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uDirectionalLight2Direction');
+        this._ambientLightColorUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uAmbientLightColor');
+        this._ambientLightDiffuseUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uAmbientLightDiffuse');
         this._colorCodingUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uColorCoding');
         this._clippingPlaneAUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uClippingPlaneA');
         this._clippingAUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uClippingA');
@@ -921,9 +1040,10 @@ var Viewer = /** @class */ (function () {
         this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uRenderingMode');
         this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uHighlightColour');
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uStateStyleSampler');
-        this._depthColorSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uDepthColorTexture');
+        this._shadowMapSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSampler');
         this._shadowMapSizeUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSize');
         this._shadowEnabledUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowEnabled');
+        this._shadowIntensityUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowIntensity');
         this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
         this._pointers = new ModelPointers(gl, this._shaderProgram);
     };
@@ -1222,7 +1342,7 @@ var Viewer = /** @class */ (function () {
                 _this.navigate('pan', panFactor * directionX, panFactor * directionY);
             }
         };
-        var handleTouchHand = function (event) {
+        var handleTouchEnd = function (event) {
             if (event.touches.length === 0) {
                 viewer.fire('movestop', {});
             }
@@ -1354,27 +1474,27 @@ var Viewer = /** @class */ (function () {
         gl.useProgram(this._lightShadowShaderProgram);
         var shadowFramebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFramebuffer);
-        this._shadowDepthTexture = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
+        this._shadowMapTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         var renderBuffer = gl.createRenderbuffer();
         gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowDepthTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowMapTexture, 0);
         gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderBuffer);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindRenderbuffer(gl.RENDERBUFFER, null);
         // We create an orthographic projection and view matrix from which our light
         // will vie the scene
-        this._lightProjectionMatrix = mat4_1.mat4.create();
-        this._lightMViewMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), vec3_1.vec3.fromValues(1, 1, 1), vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
-        this._shadowPMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightPMatrix');
-        this._shadowMVMatrix = gl.getUniformLocation(this._lightShadowShaderProgram, 'uLightMVMatrix');
+        this._directionalLightPMatrix = mat4_1.mat4.create();
+        this._directionalLightMVMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), vec3_1.vec3.fromValues(1, 1, 1), vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
+        this._shadowRendererShadowMapProjectionMatrixUniformPointer = gl.getUniformLocation(this._lightShadowShaderProgram, 'uShadowMapPMatrix');
+        this._shadowRendererShadowMapModelViewMatrixUniformPointer = gl.getUniformLocation(this._lightShadowShaderProgram, 'uShadowMapMVMatrix');
         // gl.uniformMatrix4fv(this._shadowPMatrix, false, this._lightProjectionMatrix)
-        gl.uniformMatrix4fv(this._shadowPMatrix, false, this._pMatrix);
-        gl.uniformMatrix4fv(this._shadowMVMatrix, false, this._lightMViewMatrix);
+        gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
+        gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
         this._lightShadowPositionAttrPointer = gl.getAttribLocation(this._lightShadowShaderProgram, "aPosition");
         //enable vertex attributes arrays
         gl.enableVertexAttribArray(this._lightShadowPositionAttrPointer);
@@ -1382,13 +1502,13 @@ var Viewer = /** @class */ (function () {
         this._shadowFrameBuffer = shadowFramebuffer;
         gl.useProgram(this._shaderProgram);
         gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
-        gl.uniform1i(this._depthColorSamplerUniform, 0);
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture);
+        gl.uniform1i(this._shadowMapSamplerUniform, 0);
     };
     Viewer.prototype.drawShadowMap = function (dT) {
         var _this = this;
         this._timeSinceLastShadow += dT;
-        if (this._shouldUpdateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
+        if (this._directionalLight1.updateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
             return;
         }
         var meter = this._handles && this._handles.length && this._handles[0].model.meter;
@@ -1398,6 +1518,7 @@ var Viewer = /** @class */ (function () {
         var gl = this.gl;
         var size = this.shadowMapSize;
         var shadowFrameBuffer = this._shadowFrameBuffer;
+        var directionalLight = this._directionalLight1;
         gl.useProgram(this._lightShadowShaderProgram);
         // Draw to our off screen drawing buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFrameBuffer);
@@ -1406,16 +1527,17 @@ var Viewer = /** @class */ (function () {
         gl.clearColor(1.0, 1.0, 1.0, 1);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        var pitch = -this._lightPitch + (Math.PI / 2);
+        var pitch = -directionalLight.pitch + (Math.PI / 2);
+        var yaw = directionalLight.yaw;
         var eye = [0, 0, 0];
         var distance = 100 * meter;
-        eye[0] = distance * Math.cos(this._lightYaw) * Math.sin(pitch);
-        eye[1] = distance * Math.sin(this._lightYaw) * Math.sin(pitch);
+        eye[0] = distance * Math.cos(yaw) * Math.sin(pitch);
+        eye[1] = distance * Math.sin(yaw) * Math.sin(pitch);
         eye[2] = distance * Math.cos(pitch);
-        this._lightMViewMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), eye, vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
-        this._lightProjectionMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, this.shadowMapZNear * meter, this.shadowMapZFar * meter);
-        gl.uniformMatrix4fv(this._shadowPMatrix, false, this._lightProjectionMatrix);
-        gl.uniformMatrix4fv(this._shadowMVMatrix, false, this._lightMViewMatrix);
+        this._directionalLightMVMatrix = mat4_1.mat4.lookAt(mat4_1.mat4.create(), eye, vec3_1.vec3.fromValues(0, 0, 0), vec3_1.vec3.fromValues(0, 1, 0));
+        this._directionalLightPMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, this.shadowMapZNear * meter, this.shadowMapZFar * meter);
+        gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
+        gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach(function (handle) {
@@ -1428,7 +1550,7 @@ var Viewer = /** @class */ (function () {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.useProgram(this._shaderProgram);
         this._timeSinceLastShadow = 0;
-        this._shouldUpdateShadow = false;
+        this._directionalLight1.updateShadow = false;
     };
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.
@@ -1477,31 +1599,42 @@ var Viewer = /** @class */ (function () {
         //set uniforms (these may quickly change between calls to draw)
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.mvMatrix);
-        // gl.uniformMatrix4fv(this._lightPMatrixUniformPointer, false, this._pMatrix);
-        gl.uniformMatrix4fv(this._lightPMatrixUniformPointer, false, this._lightProjectionMatrix);
-        gl.uniformMatrix4fv(this._lightMVMatrixUniformPointer, false, this._lightMViewMatrix);
-        gl.uniform4fv(this._lightAUniformPointer, new Float32Array(this.lightA));
-        gl.uniform4fv(this._lightBUniformPointer, new Float32Array(this.lightB));
+        // gl.uniformMatrix4fv(this._shadowMapProjectionMatrixUniformPointer, false, this._pMatrix);
+        gl.uniformMatrix4fv(this._shadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
+        gl.uniformMatrix4fv(this._shadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
         //overlay styles
         gl.activeTexture(gl.TEXTURE4);
         gl.bindTexture(gl.TEXTURE_2D, this._stateStyleTexture);
         gl.uniform1i(this._stateStyleSamplerUniform, 4);
         gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, this._shadowDepthTexture);
-        gl.uniform1i(this._depthColorSamplerUniform, 2);
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture);
+        gl.uniform1i(this._shadowMapSamplerUniform, 2);
         gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize);
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias);
         gl.uniform1i(this._shadowEnabledUniform, this.shadowEnabled ? 1 : 0);
-        //clipping
-        gl.uniform1i(this._clippingAUniformPointer, this._clippingA ? 1 : 0);
-        gl.uniform1i(this._clippingBUniformPointer, this._clippingB ? 1 : 0);
-        if (this._clippingA) {
-            gl.uniform4fv(this._clippingPlaneAUniformPointer, new Float32Array(this._clippingPlaneA));
-        }
-        if (this._clippingB) {
-            gl.uniform4fv(this._clippingPlaneBUniformPointer, new Float32Array(this._clippingPlaneB));
-        }
-        //use normal colour representation (1 would cause shader to use colour coding of IDs)
+        gl.uniform1f(this._shadowIntensityUniform, Math.min(this.shadowIntensity, 1.0));
+        gl.uniform3fv(this._directionalLight1ColorUniformPointer, this._directionalLight1.color);
+        gl.uniform1f(this._directionalLight1DiffuseUniformPointer, this._directionalLight1.diffuse);
+        var directionalLight1Pitch = -this._directionalLight1.pitch + (Math.PI / 2);
+        var directionalLight1Yaw = this._directionalLight1.yaw;
+        // Directional Light 2
+        gl.uniform3fv(this._directionalLight1DirectionUniformPointer, new Float32Array([
+            -Math.cos(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+            -Math.sin(directionalLight1Yaw) * Math.sin(directionalLight1Pitch),
+            -Math.cos(directionalLight1Pitch)
+        ]));
+        // Directional Light 2
+        gl.uniform3fv(this._directionalLight2ColorUniformPointer, this._directionalLight2.color);
+        gl.uniform1f(this._directionalLight2DiffuseUniformPointer, this._directionalLight2.diffuse);
+        var directionalLight2Pitch = -this._directionalLight2.pitch + (Math.PI / 2);
+        var directionalLight2Yaw = this._directionalLight2.yaw;
+        gl.uniform3fv(this._directionalLight2DirectionUniformPointer, new Float32Array([
+            -Math.cos(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+            -Math.sin(directionalLight2Yaw) * Math.sin(directionalLight2Pitch),
+            -Math.cos(directionalLight2Pitch)
+        ]));
+        gl.uniform3fv(this._ambientLightColorUniformPointer, this._ambientLight.color);
+        gl.uniform1f(this._ambientLightDiffuseUniformPointer, this._ambientLight.diffuse);
         gl.uniform1i(this._colorCodingUniformPointer, ColourCoding.NONE);
         //update highlighting colour
         gl.uniform4fv(this._highlightingColourUniformPointer, new Float32Array([
@@ -1672,6 +1805,7 @@ var Viewer = /** @class */ (function () {
         * @type {object}
         * @param {string} message - Error message
         */
+        console.error(msg);
         this.fire('error', { message: msg });
     };
     //this renders the colour coded model into the memory buffer

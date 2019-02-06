@@ -16,8 +16,7 @@ uniform float uHighlightAlphaMax;
 uniform float uSin;
 
 //colour to go to fragment shader
-varying vec4 vFrontColor;
-varying vec4 vBackColor;
+varying vec4 vColor;
 
 uniform highp sampler2D uStateStyleSampler;
 
@@ -69,8 +68,7 @@ void main(void) {
   if (state != 253)
   {
     vDiscard = 1.0;
-    vFrontColor = vec4(0.0, 0.0, 0.0, 0.0);
-    vBackColor = vec4(0.0, 0.0, 0.0, 0.0);
+    vColor = vec4(0.0, 0.0, 0.0, 0.0);
     vPosition = vec3(0.0, 0.0, 0.0);
     gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
     return;
@@ -84,8 +82,7 @@ void main(void) {
 	  uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin
   );
 
-  vFrontColor = baseColor;
-  vBackColor = baseColor;
+  vColor = baseColor;
 
   vPosition = aPosition;
   gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 1.0);

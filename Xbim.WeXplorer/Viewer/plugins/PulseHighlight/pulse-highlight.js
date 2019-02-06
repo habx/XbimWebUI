@@ -93,10 +93,10 @@ var PulseHighlight = /** @class */ (function () {
             };
             //fragment shader
             var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-            compile(fragmentShader, pulse_highlight_shaders_1.PulseShaders.pulse_fshader);
+            compile(fragmentShader, pulse_highlight_shaders_1.PulseShaders.fragment);
             //vertex shader
             var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-            compile(vertexShader, pulse_highlight_shaders_1.PulseShaders.pulse_vshader);
+            compile(vertexShader, pulse_highlight_shaders_1.PulseShaders.vertex);
             //link program
             this._shader = gl.createProgram();
             gl.attachShader(this._shader, vertexShader);

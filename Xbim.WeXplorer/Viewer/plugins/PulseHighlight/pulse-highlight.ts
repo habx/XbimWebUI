@@ -288,19 +288,11 @@ export class PulseHighlight implements IPlugin {
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
         const maps = this._maps[handleIndex];
-<<<<<<< HEAD
-        
-        if (maps && maps.length) {
-            maps.sort(this._zSortFunction.bind(this));
-            maps.forEach(function (map) {
-                const spans = map.spans 
-=======
 
         if (maps && maps.length) {
             maps.sort(this._zSortFunction.bind(this));
             maps.forEach(function (map) {
-                const spans = map.spans
->>>>>>> habx-develop
+                const spans = map.spans;
                 spans.forEach(function (span) {
                     gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
                 })
@@ -340,11 +332,11 @@ export class PulseHighlight implements IPlugin {
 
         //fragment shader
         var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-        compile(fragmentShader, PulseShaders.pulse_fshader);
+        compile(fragmentShader, PulseShaders.fragment);
 
         //vertex shader
         var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-        compile(vertexShader, PulseShaders.pulse_vshader);
+        compile(vertexShader, PulseShaders.vertex);
 
         //link program
         this._shader = gl.createProgram();
