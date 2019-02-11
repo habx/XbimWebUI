@@ -2836,7 +2836,7 @@ export class ModelPointers {
         //get attribute pointers
         this.PositionAttrPointer = gl.getAttribLocation(program, 'aPosition');
         this.NormalAttrPointer = gl.getAttribLocation(program, 'aNormal');
-        this.ProductAttrPointer = gl.getAttribLocation(program, 'aProduct');
+        // this.ProductAttrPointer = gl.getAttribLocation(program, 'aProduct');
         this.StateAttrPointer = gl.getAttribLocation(program, 'aState');
         this.StyleAttrPointer = gl.getAttribLocation(program, 'aStyleIndex');
 
@@ -2847,7 +2847,7 @@ export class ModelPointers {
         //enable vertex attributes arrays
         gl.enableVertexAttribArray(this.PositionAttrPointer);
         gl.enableVertexAttribArray(this.NormalAttrPointer);
-        gl.enableVertexAttribArray(this.ProductAttrPointer);
+        // gl.enableVertexAttribArray(this.ProductAttrPointer);
         gl.enableVertexAttribArray(this.StateAttrPointer);
         gl.enableVertexAttribArray(this.StyleAttrPointer);
     }

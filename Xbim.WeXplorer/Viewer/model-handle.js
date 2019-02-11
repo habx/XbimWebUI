@@ -67,8 +67,8 @@ var ModelHandle = /** @class */ (function () {
         gl.vertexAttribPointer(pointers.PositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._normalBuffer);
         gl.vertexAttribPointer(pointers.NormalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
-        gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
+        // gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._stateBuffer);
         gl.vertexAttribPointer(pointers.StateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._styleBuffer);

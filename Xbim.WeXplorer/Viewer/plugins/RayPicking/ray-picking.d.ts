@@ -1,20 +1,25 @@
 import { IPlugin, Viewer } from "../../viewer";
 export declare class RayPicking implements IPlugin {
     /**
-     * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
-     * @name RayPicking
-     * @constructor
-     * @classdesc This is a plugin for Viewer which does picking by casting a ray to see which elements are
-     * under the mouse. Best performance when a only subset of elements are pickable
-     *
-     *     var rayPicking = new RayPicking();
-     *     viewer.addPlugin(rayPicking);
-     *
+    * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
+    * @name RayPicking
+    * @constructor
+    * @classdesc This is a plugin for Viewer which does picking by casting a ray to see which elements are
+    * under the mouse. Best performance when a only subset of elements are pickable
+    *
+    *     var rayPicking = new RayPicking();
+    *     viewer.addPlugin(rayPicking);
+    *
     */
     constructor();
     private _initialized;
     accurate: boolean;
     private viewer;
+    private _frameNb;
+    private _hitFrameNb;
+    private _hitProduct;
+    private _hitHandle;
+    private _originalGetID;
     init(viewer: Viewer): void;
     private getID;
     private _rayHitsTriangle;

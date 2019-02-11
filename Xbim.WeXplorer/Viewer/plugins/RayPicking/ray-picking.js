@@ -69,15 +69,15 @@ var getBboxTriangles = function (bbox) {
 };
 var RayPicking = /** @class */ (function () {
     /**
-     * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
-     * @name RayPicking
-     * @constructor
-     * @classdesc This is a plugin for Viewer which does picking by casting a ray to see which elements are
-     * under the mouse. Best performance when a only subset of elements are pickable
-     *
-     *     var rayPicking = new RayPicking();
-     *     viewer.addPlugin(rayPicking);
-     *
+    * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
+    * @name RayPicking
+    * @constructor
+    * @classdesc This is a plugin for Viewer which does picking by casting a ray to see which elements are
+    * under the mouse. Best performance when a only subset of elements are pickable
+    *
+    *     var rayPicking = new RayPicking();
+    *     viewer.addPlugin(rayPicking);
+    *
     */
     function RayPicking() {
         this._initialized = false;

@@ -1,5 +1,4 @@
 attribute highp float aStyleIndex;
-attribute highp float aProduct;
 attribute highp vec3 aPosition;
 attribute highp vec2 aState;
 attribute highp vec2 aNormal;

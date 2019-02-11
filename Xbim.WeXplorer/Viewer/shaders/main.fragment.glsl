@@ -43,7 +43,7 @@ float shadowDepthCompare(sampler2D shadowSampler, vec2 uv, float depth) {
 }
 
 float shadowPCF(vec3 vertexPos) {
-    vec3 normal = gl_FrontFacing ? vNormal : (vNormal * -1.0);
+    vec3 normal = vNormal;
     float cosTheta = clamp(dot(normal, -uDirectionalLight1Direction), 0.0, 1.0);
 
     float bias = uShadowBias * tan(acos(cosTheta));
@@ -74,7 +74,7 @@ void main(void) {
 
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);
-    vec3 normal = gl_FrontFacing ? vNormal : (vNormal * -1.0);
+    vec3 normal = vNormal;
 
     ambient += uAmbientLightColor * uAmbientLightDiffuse * shadow;
     float directionalLight1Weight = max(dot(normal, uDirectionalLight1Direction) * uDirectionalLight1Diffuse, 0.0);
