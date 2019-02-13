@@ -5,6 +5,7 @@ varying vec4 vColor;
 varying vec3 vPosition;
 //state passed to fragment shader
 varying float vDiscard;
+varying vec3 vNormal;
 
 void main(void) {
 	//test if this fragment is to be discarded from vertex shader

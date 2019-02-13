@@ -177,7 +177,7 @@ export class ModelHandle {
             spans.sort((a, b) => a[0] - b[0])
 
             let start = 0;
-            let end = this.model.transparentIndex;
+            let end = this._numberOfIndices;
 
             spans.forEach(span => {
                 gl.drawArrays(gl.TRIANGLES, start, span[0] - start);

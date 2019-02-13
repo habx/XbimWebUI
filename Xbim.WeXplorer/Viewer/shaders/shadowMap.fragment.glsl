@@ -1,5 +1,7 @@
 precision mediump float;
 
+varying float vDiscard;
+
 vec4 encodeFloat(float v) {
     vec4 result = vec4(1.0, 255.0, 65025.0, 16581375.0) * v;
     result = fract(result);
@@ -9,5 +11,6 @@ vec4 encodeFloat(float v) {
 }
 
 void main(void) {
+    if (vDiscard > 0.5 || !gl_FrontFacing) discard;
     gl_FragColor = encodeFloat(gl_FragCoord.z);
 }

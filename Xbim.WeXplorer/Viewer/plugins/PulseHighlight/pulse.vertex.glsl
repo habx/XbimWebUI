@@ -22,6 +22,7 @@ uniform highp sampler2D uStateStyleSampler;
 
 //varying position used for clipping in fragment shader
 varying vec3 vPosition;
+varying vec3 vNormal;
 //state passed to fragment shader
 varying float vDiscard;
 
@@ -75,13 +76,15 @@ void main(void) {
   }
 
   vec3 normal = getNormal();
+  vNormal = normal;
+
   float normalRatio = 0.5 + 0.5 * dot(normal, vec3(0.0, 0.0, 1.0));
 
   vec4 baseColor = vec4(
 	  getColor().rgb * normalRatio, 
 	  uHighlightAlphaMin + (uHighlightAlphaMax - uHighlightAlphaMin) * uSin
   );
-
+  
   vColor = baseColor;
 
   vPosition = aPosition;

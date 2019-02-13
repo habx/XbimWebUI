@@ -64,7 +64,7 @@ float shadowPCF(vec3 vertexPos) {
 
 void main(void) {
 	//test if this fragment is to be discarded from vertex shader
-	if ( vDiscard > 0.5) discard;
+	if ( vDiscard > 0.5 || !gl_FrontFacing) discard;
 
     float shadow = 1.0;
 

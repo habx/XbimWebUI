@@ -113,7 +113,7 @@ var ModelHandle = /** @class */ (function () {
             });
             spans_1.sort(function (a, b) { return a[0] - b[0]; });
             var start_1 = 0;
-            var end = this.model.transparentIndex;
+            var end = this._numberOfIndices;
             spans_1.forEach(function (span) {
                 gl.drawArrays(gl.TRIANGLES, start_1, span[0] - start_1);
                 start_1 = span[1];
