@@ -1841,7 +1841,8 @@ export class Viewer {
 
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix)
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix)
-        
+
+        gl.enable(gl.CULL_FACE);
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach((handle) => {
@@ -2027,7 +2028,7 @@ export class Viewer {
             });
             gl.disable(gl.BLEND);
         } else {
-            gl.disable(gl.CULL_FACE);
+            gl.enable(gl.CULL_FACE);
 
             //two runs, first for solids from all models, second for transparent objects from all models
             //this makes sure that transparent objects are always rendered at the end.

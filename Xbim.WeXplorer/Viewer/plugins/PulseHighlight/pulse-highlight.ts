@@ -207,6 +207,7 @@ export class PulseHighlight implements IPlugin {
         var gl = this.viewer.gl;
 
         gl.enable(gl.BLEND);
+        gl.disable(gl.CULL_FACE);
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this.viewer._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.viewer.mvMatrix);
         gl.uniform4fv(this._clippingPlaneAUniformPointer, new Float32Array(this.viewer._clippingPlaneA));

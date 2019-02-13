@@ -1538,6 +1538,7 @@ var Viewer = /** @class */ (function () {
         this._directionalLightPMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, -this.shadowMapProjectionWidth * meter, this.shadowMapProjectionWidth * meter, this.shadowMapZNear * meter, this.shadowMapZFar * meter);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
+        gl.enable(gl.CULL_FACE);
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach(function (handle) {
@@ -1666,7 +1667,7 @@ var Viewer = /** @class */ (function () {
             gl.disable(gl.BLEND);
         }
         else {
-            gl.disable(gl.CULL_FACE);
+            gl.enable(gl.CULL_FACE);
             //two runs, first for solids from all models, second for transparent objects from all models
             //this makes sure that transparent objects are always rendered at the end.
             this._handles.forEach(function (handle) {
