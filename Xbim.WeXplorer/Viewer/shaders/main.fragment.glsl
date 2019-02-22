@@ -64,7 +64,7 @@ float shadowPCF(vec3 vertexPos) {
 
 void main(void) {
 	//test if this fragment is to be discarded from vertex shader
-	if ( vDiscard > 0.5 || !gl_FrontFacing) discard;
+	if ( vDiscard > 0.5) discard;
 
     float shadow = 1.0;
 
@@ -83,7 +83,7 @@ void main(void) {
     //minimal constant value is for ambient light
     diffuse += directionalLight1Weight * shadow * uDirectionalLight1Diffuse * uDirectionalLight1Color;
     diffuse += directionalLight2Weight * shadow * uDirectionalLight2Diffuse * uDirectionalLight2Color;
-	
-    // gl_FragColor = texture2D(uShadowMapSampler, vShadowPos.xy);
+        
+
     gl_FragColor = vec4(vColor.rgb * (ambient + diffuse), vColor.a);
 }

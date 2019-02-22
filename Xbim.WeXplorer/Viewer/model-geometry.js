@@ -42,6 +42,10 @@ var product_type_1 = require("./product-type");
 var mat4_1 = require("./matrix/mat4");
 var vec3_1 = require("./matrix/vec3");
 var tick = function () { return new Promise(function (cb) { return setTimeout(cb, 0); }); };
+var EPSILON = 0.01;
+var approximatelyEqual = function (a, b) { return Math.abs(a - b) < EPSILON; };
+window.good = 0;
+window.bad = 0;
 var ModelGeometry = /** @class */ (function () {
     function ModelGeometry() {
         this.meter = 1000;
@@ -64,6 +68,24 @@ var ModelGeometry = /** @class */ (function () {
             var y = Math.cos(lat);
             return vec3_1.vec3.normalize(vec3_1.vec3.create(), vec3_1.vec3.fromValues(x, y, z));
         };
+        this.computeNormal = function (triangle) {
+            var normal = vec3_1.vec3.cross(vec3_1.vec3.create(), vec3_1.vec3.sub(vec3_1.vec3.create(), triangle[1], triangle[0]), vec3_1.vec3.sub(vec3_1.vec3.create(), triangle[2], triangle[0]));
+            var normalizedNormal = vec3_1.vec3.normalize(vec3_1.vec3.create(), normal);
+            return normalizedNormal;
+        };
+        this.packNormal = function (normal) {
+            var x = normal[0];
+            var y = normal[1];
+            var z = normal[2];
+            var lat = Math.acos(y);
+            var lon = (x || z)
+                ? Math.atan2(x / Math.sin(lat), z / Math.sin(lat))
+                : 0;
+            return [
+                Math.round(252 * (lon / (Math.PI * 2.0))),
+                Math.round(252 * (lat / Math.PI)),
+            ];
+        };
     }
     ModelGeometry.prototype.parse = function (binReader) {
         return __awaiter(this, void 0, void 0, function () {
@@ -82,13 +104,9 @@ var ModelGeometry = /** @class */ (function () {
                         numVertices = br.readInt32();
                         numTriangles = br.readInt32();
                         numMatrices = br.readInt32();
-                        ;
                         numProducts = br.readInt32();
-                        ;
                         numStyles = br.readInt32();
-                        ;
                         this.meter = br.readFloat32();
-                        ;
                         numRegions = br.readInt16();
                         square = function (arity, count) {
                             if (typeof (arity) == 'undefined' || typeof (count) == 'undefined') {
@@ -238,11 +256,12 @@ var ModelGeometry = /** @class */ (function () {
                                 };
                                 _this.productMaps[shape.pLabel] = map;
                             }
-                            _this.normals.set(shapeGeom.normals, iIndex * 2);
+                            // this.normals.set(shapeGeom.normals, iIndex * 2);
                             //switch spaces and openings off by default 
                             var state = map.type == typeEnum.IFCSPACE || map.type == typeEnum.IFCOPENINGELEMENT
                                 ? stateEnum.HIDDEN
                                 : 0xFF; //0xFF is for the default state
+                            var triangle = [];
                             //fix indices to right absolute position. It is relative to the shape.
                             for (var i = 0; i < shapeGeom.indices.length; i++) {
                                 _this.indices[iIndex] = shapeGeom.indices[i] + iVertex / 3;
@@ -250,16 +269,38 @@ var ModelGeometry = /** @class */ (function () {
                                 _this.styleIndices[iIndex] = shape.style;
                                 _this.states[2 * iIndex] = state; //set state
                                 _this.states[2 * iIndex + 1] = 0xFF; //default style
+                                _this.normals[2 * iIndex] = shapeGeom.normals[2 * i];
+                                _this.normals[(2 * iIndex) + 1] = shapeGeom.normals[(2 * i) + 1];
                                 var vertex = vec3_1.vec3.create();
                                 vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                                if (map.type === typeEnum.IFCDOOR || map.type === typeEnum.IFCDOORSTANDARDCASE || map.type === typeEnum.IFCWINDOW || map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
+                                    if (!triangle[0]) {
+                                        triangle[0] = transformedVertex;
+                                    }
+                                    else if (!triangle[1]) {
+                                        triangle[1] = transformedVertex;
+                                    }
+                                    else if (!triangle[2]) {
+                                        triangle[2] = transformedVertex;
+                                        var computedNormal = _this.computeNormal(triangle);
+                                        var packedNormal = _this.packNormal(computedNormal);
+                                        _this.normals[2 * (iIndex - 2)] = packedNormal[0];
+                                        _this.normals[(2 * (iIndex - 2)) + 1] = packedNormal[1];
+                                        _this.normals[2 * (iIndex - 1)] = packedNormal[0];
+                                        _this.normals[(2 * (iIndex - 1)) + 1] = packedNormal[1];
+                                        _this.normals[2 * iIndex] = packedNormal[0];
+                                        _this.normals[(2 * iIndex) + 1] = packedNormal[1];
+                                        triangle = [];
+                                    }
+                                }
                                 if (map.type === typeEnum.IFCSLAB) {
                                     transformedVertex[2] += _this.meter * 0.02;
                                 }
                                 else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                                    var offsetRatio = _this.meter * 0.004;
+                                    var offsetRatio = _this.meter * 0.01;
                                     var normal = _this.getNormal(_this.normals[2 * iIndex], _this.normals[(2 * iIndex) + 1]);
                                     transformedVertex[0] += normal[0] * offsetRatio;
                                     transformedVertex[1] += normal[1] * offsetRatio;
@@ -286,6 +327,10 @@ var ModelGeometry = /** @class */ (function () {
                         iShape++;
                         return [3 /*break*/, 1];
                     case 5:
+                        console.log({
+                            good: window.good,
+                            bad: window.bad,
+                        });
                         //binary reader should be at the end by now
                         if (!br.isEOF()) {
                             //throw 'Binary reader is not at the end of the file.';
