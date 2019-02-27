@@ -318,7 +318,7 @@ export class ModelGeometry {
                     if (map.type === typeEnum.IFCSLAB) {
                         transformedVertex[2] += this.meter * 0.02
                     } else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                        const offsetRatio = this.meter * 0.01;
+                        const offsetRatio = this.meter * 0.003;
                         const normal = this.getNormal(this.normals[2 * iIndex], this.normals[(2 * iIndex) + 1])
 
                         transformedVertex[0] += normal[0] * offsetRatio;

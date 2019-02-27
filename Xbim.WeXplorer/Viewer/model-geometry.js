@@ -276,6 +276,7 @@ var ModelGeometry = /** @class */ (function () {
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                                // Fixing the normals for the doors and windows
                                 if (map.type === typeEnum.IFCDOOR || map.type === typeEnum.IFCDOORSTANDARDCASE || map.type === typeEnum.IFCWINDOW || map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
                                     if (!triangle[0]) {
                                         triangle[0] = transformedVertex;
@@ -300,7 +301,7 @@ var ModelGeometry = /** @class */ (function () {
                                     transformedVertex[2] += _this.meter * 0.02;
                                 }
                                 else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                                    var offsetRatio = _this.meter * 0.01;
+                                    var offsetRatio = _this.meter * 0.003;
                                     var normal = _this.getNormal(_this.normals[2 * iIndex], _this.normals[(2 * iIndex) + 1]);
                                     transformedVertex[0] += normal[0] * offsetRatio;
                                     transformedVertex[1] += normal[1] * offsetRatio;
