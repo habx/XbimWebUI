@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var state_1 = require("../../state");
 var pulse_highlight_shaders_1 = require("./pulse-highlight-shaders");
 var mat4_1 = require("../../matrix/mat4");
 var vec3_1 = require("../../matrix/vec3");
+var lodash_1 = require("lodash");
+var rgbToHex = function (color) { return "#" + color[0].toString(16) + color[1].toString(16) + color[2].toString(16); };
 var PulseHighlight = /** @class */ (function () {
     /**
      * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
@@ -22,63 +23,122 @@ var PulseHighlight = /** @class */ (function () {
         this._periodOffset = 0;
         this._alphaMin = 0.3;
         this._alphaMax = 0.6;
-        this._maps = [];
+        this._highlightMaps = [];
         this._pulseEnabled = true;
-        this.setState = function (state, target, modelId) {
-            this._originalSetState(state, target, modelId);
-            this.updateMaps();
-        };
-        this.resetStates = function (hideSpaces, modelId) {
-            this._originalResetStates(hideSpaces, modelId);
-            this.updateMaps();
-        };
+        this._highlighted = [];
         this.updateMaps = function () {
             var _this = this;
-            this.viewer._handles.forEach(function (handle, handleIndex) {
-                var maps = [];
-                for (var n in handle.model.productMaps) {
-                    var map = handle.model.productMaps[n];
-                    if (map.state === state_1.State.HIGHLIGHTED) {
-                        maps.push(map);
+            var idToColors = {};
+            var prioritaryIdToColors = {};
+            var newHighlights = [];
+            var highlighted = lodash_1.reduce(this._highlighted, function (result, highlight) {
+                var ids = highlight.ids;
+                var prioritary = highlight.prioritary;
+                var color = highlight.color;
+                lodash_1.each(ids, function (id) {
+                    var highlightsWithThisId = lodash_1.filter(_this._highlighted, function (h) { return h !== highlight && lodash_1.includes(h.ids, id); });
+                    var othersArePrioritary = lodash_1.some(highlightsWithThisId, 'prioritary');
+                    if (highlightsWithThisId.length > 0) {
+                        lodash_1.each(highlightsWithThisId, function (h) {
+                            if (!h.prioritary) {
+                                lodash_1.pull(h.ids, id);
+                            }
+                        });
+                        if (!prioritary || othersArePrioritary) {
+                            lodash_1.pull(highlight.ids, id);
+                        }
+                        if (!prioritary && !othersArePrioritary) {
+                            result.push({
+                                colors: [color].concat(lodash_1.map(highlightsWithThisId, 'color')),
+                                ids: [id],
+                                prioritary: false,
+                            });
+                        }
                     }
+                });
+                if (ids.length) {
+                    result.push({
+                        ids: ids,
+                        prioritary: prioritary,
+                        color: color,
+                    });
                 }
-                _this._maps[handleIndex] = maps;
+                return result;
+            }, []);
+            this.viewer._handles.forEach(function (handle, handleIndex) {
+                var vertices = handle.model.vertices;
+                var highlightMaps = lodash_1.map(highlighted, function (highlight) {
+                    var ids = highlight.ids;
+                    var colors = highlight.colors || [highlight.color];
+                    var maps = [];
+                    ids.forEach(function (id) {
+                        if (handle.model.productMaps[id]) {
+                            var map_1 = handle.model.productMaps[id];
+                            maps.push(map_1);
+                        }
+                    });
+                    return ({
+                        colors: colors,
+                        maps: maps,
+                    });
+                });
+                _this._highlightMaps[handleIndex] = highlightMaps;
             });
         };
         this.drawHandle = function (handle, handleIndex) {
+            var _this = this;
             var gl = this.viewer.gl;
             if (handle.stopped)
                 return;
             //set attributes and uniforms
             gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
             gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
-            gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
-            gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
             gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
             gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-            var maps = this._maps[handleIndex];
-            if (maps && maps.length) {
-                maps.sort(this._zSortFunction.bind(this));
-                maps.forEach(function (map) {
-                    var spans = map.spans;
-                    spans.forEach(function (span) {
-                        gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
-                    });
-                }, handle);
+            var highlightMaps = this._highlightMaps[handleIndex];
+            if (highlightMaps && highlightMaps.length) {
+                highlightMaps.sort(this._zSortFunction.bind(this));
+                highlightMaps.forEach(function (highlightMap, index) {
+                    var maps = highlightMap.maps;
+                    // const shapes = highlightMap.shapes
+                    var colors = highlightMap.colors;
+                    var color = colors[0];
+                    var color2 = colors[1] || colors[0];
+                    gl.uniform4fv(_this._highlightingColorUniformPointer, new Float32Array([
+                        color[0] / 0xFF,
+                        color[1] / 0xFF,
+                        color[2] / 0xFF,
+                        1.0
+                    ]));
+                    gl.uniform4fv(_this._highlightingColor2UniformPointer, new Float32Array([
+                        color2[0] / 0xFF,
+                        color2[1] / 0xFF,
+                        color2[2] / 0xFF,
+                        1.0
+                    ]));
+                    maps.forEach(function (map) {
+                        var spans = map.spans;
+                        spans.forEach(function (span) {
+                            gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                        });
+                    }, handle);
+                });
             }
         };
-        this.getBboxScreenSpaceDistance = function (bbox) {
-            var worldPosition = [
-                bbox[0] + bbox[3] / 2.0,
-                bbox[1] + bbox[4] / 2.0,
-                bbox[2] + bbox[5] / 2.0,
-            ];
+        this.getBboxScreenSpaceDistance = function (bboxes) {
+            var worldPosition = vec3_1.vec3.create();
+            bboxes.forEach(function (bbox) {
+                worldPosition = vec3_1.vec3.add(vec3_1.vec3.create(), worldPosition, vec3_1.vec3.fromValues(bbox[0] + bbox[3] * 0.5, bbox[1] + bbox[4] * 0.5, bbox[2] + bbox[5] * 0.5));
+            });
+            worldPosition = vec3_1.vec3.scale(vec3_1.vec3.create(), worldPosition, 1 / bboxes.length);
             var viewProjection = mat4_1.mat4.multiply(mat4_1.mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix);
             var z = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, this.viewer.mvMatrix)[2];
             return z;
         };
         this._zSortFunction = function (a, b) {
-            return this.getBboxScreenSpaceDistance(a.bBox) - this.getBboxScreenSpaceDistance(b.bBox);
+            var aBboxes = a.maps.map(function (v) { return v.bBox; });
+            var bBboxes = b.maps.map(function (v) { return v.bBox; });
+            return this.getBboxScreenSpaceDistance(aBboxes) - this.getBboxScreenSpaceDistance(bBboxes);
         };
         this._initShader = function () {
             var gl = this.viewer.gl;
@@ -168,6 +228,18 @@ var PulseHighlight = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(PulseHighlight.prototype, "highlighted", {
+        get: function () {
+            return this._highlighted;
+        },
+        set: function (value) {
+            this._highlighted = value;
+            this._highlightMaps = [];
+            this.updateMaps();
+        },
+        enumerable: true,
+        configurable: true
+    });
     PulseHighlight.prototype.init = function (viewer) {
         var self = this;
         this.viewer = viewer;
@@ -182,32 +254,22 @@ var PulseHighlight = /** @class */ (function () {
         //create uniform and attribute pointers
         this._alphaMinUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMin");
         this._alphaMaxUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMax");
+        this._highlightingColorUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColor");
+        this._highlightingColor2UniformPointer = gl.getUniformLocation(this._shader, "uHighlightColor2");
         this._sinUniformPointer = gl.getUniformLocation(this._shader, "uSin");
+        this._zOffsetUniformPointer = gl.getUniformLocation(this._shader, "uZOffset");
         // Base uniforms
         this._pMatrixUniformPointer = gl.getUniformLocation(this._shader, "uPMatrix");
         this._mvMatrixUniformPointer = gl.getUniformLocation(this._shader, "uMVMatrix");
-        this._clippingPlaneAUniformPointer = gl.getUniformLocation(this._shader, 'uClippingPlaneA');
-        this._clippingAUniformPointer = gl.getUniformLocation(this._shader, 'uClippingA');
-        this._clippingPlaneBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingPlaneB');
-        this._clippingBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingB');
-        this._highlightingColourUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColour");
-        this._stateStyleSamplerUniform = gl.getUniformLocation(this._shader, 'uStateStyleSampler');
         // Base attributes
         this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition");
-        this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState");
         this._normalAttrPointer = gl.getAttribLocation(this._shader, "aNormal");
         //enable vertex attributes arrays
         gl.enableVertexAttribArray(this._positionAttrPointer);
-        gl.enableVertexAttribArray(this._stateAttrPointer);
         gl.enableVertexAttribArray(this._normalAttrPointer);
         //reset original shader program
         gl.useProgram(this.viewer._shaderProgram);
         this._initialized = true;
-        this._originalSetState = viewer['setState'].bind(viewer);
-        viewer['setState'] = this.setState.bind(this);
-        this._originalResetStates = viewer['resetStates'].bind(viewer);
-        viewer['resetStates'] = this.resetStates.bind(this);
-        this.updateMaps();
     };
     PulseHighlight.prototype.onBeforeDraw = function () { };
     PulseHighlight.prototype.onBeforePick = function (id) { return false; };
@@ -241,19 +303,6 @@ var PulseHighlight = /** @class */ (function () {
         gl.disable(gl.CULL_FACE);
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this.viewer._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.viewer.mvMatrix);
-        gl.uniform4fv(this._clippingPlaneAUniformPointer, new Float32Array(this.viewer._clippingPlaneA));
-        gl.uniform4fv(this._clippingPlaneBUniformPointer, new Float32Array(this.viewer._clippingPlaneB));
-        gl.uniform1i(this._clippingAUniformPointer, this.viewer._clippingA ? 1 : 0);
-        gl.uniform1i(this._clippingBUniformPointer, this.viewer._clippingB ? 1 : 0);
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, this.viewer._stateStyleTexture);
-        gl.uniform1i(this._stateStyleSamplerUniform, 4);
-        gl.uniform4fv(this._highlightingColourUniformPointer, new Float32Array([
-            this._highlightingColor[0] / 255.0,
-            this._highlightingColor[1] / 255.0,
-            this._highlightingColor[2] / 255.0,
-            this._highlightingColor[3]
-        ]));
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
         if (this._pulseEnabled) {
@@ -267,6 +316,15 @@ var PulseHighlight = /** @class */ (function () {
         this.viewer._handles.forEach(this.drawHandle.bind(this));
         gl.enable(gl.DEPTH_TEST);
         gl.disable(gl.BLEND);
+    };
+    PulseHighlight.prototype.lookupId = function (id) {
+        var results = [];
+        this._highlighted.forEach(function (highlight) {
+            if (highlight.ids.includes(id)) {
+                results.push(highlight);
+            }
+        });
+        return results;
     };
     return PulseHighlight;
 }());

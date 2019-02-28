@@ -12,8 +12,144 @@ const EPSILON = 0.01
 
 const approximatelyEqual = (a, b) => Math.abs(a - b) < EPSILON
 
-window.good = 0
-window.bad = 0
+
+const computeNormal = triangle => {
+    const normal = vec3.cross(
+        vec3.create(),
+        vec3.sub(vec3.create(), triangle[1], triangle[0]),
+        vec3.sub(vec3.create(), triangle[2], triangle[0]),
+    )
+
+    const normalizedNormal = vec3.normalize(vec3.create(), normal)
+        
+    return normalizedNormal
+}
+
+const centerOfPoints = points => {
+    let acc = vec3.create()
+    points.forEach(point => {
+        acc = vec3.add(vec3.create(), acc, point)
+    })
+
+    return vec3.scale(vec3.create(), acc, 1 / points.length)
+}
+
+/*
+const sortPolygonPoints = (points) => {
+    if (points.length < 3) {
+        return points
+    }
+
+    const center = centerOfPoints(points)
+    const normal = computeNormal([points[0], points[1], center])
+
+    const mvMatrix = mat4.lookAt(mat4.create(), center, vec3.add(vec3.create(), center, normal), [0, 0, 1]);
+    const pMatrix = mat4.ortho(mat4.create(), -200, 200, -200, 200, -1, 1)
+    const matrix = mat4.multiply(mat4.create(), mvMatrix, pMatrix)
+
+    return points.sort((a, b) => {
+        const projA = vec3.transformMat4(vec3.create(), a, mvMatrix)
+        const projB = vec3.transformMat4(vec3.create(), b, mvMatrix)
+        
+        const angleA = Math.atan2(projA[2], projA[0])
+        const angleB = Math.atan2(projB[2], projB[0])
+
+        return angleA - angleB
+    })
+}
+
+const getNormalHash = normal => {
+    const x = Math.round(normal[0] * 100) / 100
+    const y = Math.round(normal[1] * 100) / 100
+    const z = Math.round(normal[2] * 100) / 100
+
+    return `${x.toPrecision(2)} ${y.toPrecision(2)} ${z.toPrecision(2)}`
+}
+
+
+export const getShape = triangles => {
+    const normalToTriangles = {}
+
+    // Regroup triangles with similar normal
+    triangles.forEach(triangle => {
+        const normal = computeNormal(triangle)
+        const normalKey = getNormalHash(normal)
+
+        normalToTriangles[normalKey] = normalToTriangles[normalKey] || []
+        normalToTriangles[normalKey].push(triangle)
+    })
+        
+    let facesTriangles = []
+
+    // Regroup triangles that share a point
+    Object.keys(normalToTriangles).forEach(normalKey => {
+        const normalTriangles = normalToTriangles[normalKey]
+        const faces = []
+
+        normalTriangles.forEach(normalTriangle => {
+            let found = false
+
+            faces.forEach(face => {
+                face.forEach(triangle => {
+                    triangle.forEach(point => {
+                        if (found) {
+                            return false
+                        }
+
+                        if (
+                            vec3.equals(point, normalTriangle[0]) ||
+                            vec3.equals(point, normalTriangle[1]) ||
+                            vec3.equals(point, normalTriangle[2])
+                        ) {
+                            face.push(normalTriangle)
+                            found = true
+                            return false
+                        }
+
+                        return true
+                    })
+
+                    return !face
+                })
+            })
+
+            if (!found) {
+                faces.push([normalTriangle])
+            }
+        })
+
+        facesTriangles = [...faces, ...facesTriangles]
+    })
+
+    const faces = []
+
+    facesTriangles.forEach(faceTriangles => {
+        const face = []
+
+        faceTriangles.forEach(triangle => {
+            triangle.forEach(point => {
+                let found = false;
+                face.forEach(facePoint => {
+                    if (vec3.equals(point, facePoint)) {
+                        found = true
+                    }
+
+                    return !found
+                })
+
+                if (!found) {
+                    face.push(point)
+                }
+            })
+        })
+
+
+        faces.push(sortPolygonPoints(face))
+    })
+
+    return faces
+}
+*/
 
 export class ModelGeometry {
     //all this data is to be fed into GPU as attributes
@@ -55,18 +191,6 @@ export class ModelGeometry {
         const z = Math.cos(lon) * Math.sin(lat);
         const y = Math.cos(lat);
         return vec3.normalize(vec3.create(), vec3.fromValues(x, y, z));
-    }
-
-    public computeNormal = triangle => {
-        const normal = vec3.cross(
-            vec3.create(),
-            vec3.sub(vec3.create(), triangle[1], triangle[0]),
-            vec3.sub(vec3.create(), triangle[2], triangle[0]),
-        )
-
-        const normalizedNormal = vec3.normalize(vec3.create(), normal)
-        
-        return normalizedNormal
     }
 
     public packNormal = normal => {
@@ -270,6 +394,7 @@ export class ModelGeometry {
                     ? stateEnum.HIDDEN
                     : 0xFF; //0xFF is for the default state
 
+
                 let triangle = []
 
                 //fix indices to right absolute position. It is relative to the shape.
@@ -299,7 +424,7 @@ export class ModelGeometry {
                         } else if (!triangle[2]) {
                             triangle[2] = transformedVertex
 
-                            const computedNormal = this.computeNormal(triangle)
+                            const computedNormal = computeNormal(triangle)
                             const packedNormal = this.packNormal(computedNormal)
                             
                             this.normals[2 * (iIndex - 2)] = packedNormal[0]
@@ -346,12 +471,7 @@ export class ModelGeometry {
             iVertex += shapeGeom.vertices.length;
             shapeGeom = null;
         }
-
-        console.log({
-            good: window.good,
-            bad: window.bad,
-        })
-
+        
         //binary reader should be at the end by now
         if (!br.isEOF()) {
             //throw 'Binary reader is not at the end of the file.';

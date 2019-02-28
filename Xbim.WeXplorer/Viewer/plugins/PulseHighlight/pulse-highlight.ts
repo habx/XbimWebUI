@@ -6,6 +6,10 @@ import { mat4 } from "../../matrix/mat4";
 import { mat3 } from "../../matrix/mat3";
 import { vec3 } from "../../matrix/vec3";
 
+import { some, map, filter, each, includes, reduce, pull } from 'lodash'
+
+const rgbToHex = color => `#${color[0].toString(16)}${color[1].toString(16)}${color[2].toString(16)}`
+
 export class PulseHighlight implements IPlugin {
     /**
      * This is constructor of the Pulse Highlight plugin for {@link xViewer xBIM Viewer}.
@@ -29,19 +33,15 @@ export class PulseHighlight implements IPlugin {
 
     private _alphaMinUniformPointer: WebGLUniformLocation;
     private _alphaMaxUniformPointer: WebGLUniformLocation;
+    private _highlightingColorUniformPointer: WebGLUniformLocation;
+    private _highlightingColor2UniformPointer: WebGLUniformLocation;
     private _sinUniformPointer: WebGLUniformLocation;
+    private _zOffsetUniformPointer: WebGLUniformLocation;
 
     private _pMatrixUniformPointer: WebGLUniformLocation;
     private _mvMatrixUniformPointer: WebGLUniformLocation;
-    private _clippingPlaneAUniformPointer: WebGLUniformLocation;
-    private _clippingAUniformPointer: WebGLUniformLocation;
-    private _clippingPlaneBUniformPointer: WebGLUniformLocation;
-    private _clippingBUniformPointer: WebGLUniformLocation;
-    private _highlightingColourUniformPointer: WebGLUniformLocation;
-    private _stateStyleSamplerUniform: WebGLUniformLocation;
 
     private _positionAttrPointer: number;
-    private _stateAttrPointer: number;
     private _normalAttrPointer: number;
 
     private _period: number = 1500;
@@ -49,12 +49,11 @@ export class PulseHighlight implements IPlugin {
     private _alphaMin: number = 0.3;
     private _alphaMax: number = 0.6;
 
-    private _maps: ProductMap[] = [];
-
-    private _originalSetState: (state: State, target: number | number[], modelId?: number) => void;
-    private _originalResetStates: (hideSpaces?: boolean, modelId?: number) => void;
-
+    private _highlightMaps = [];
+    
     private _pulseEnabled: boolean = true;
+
+    private _highlighted = [];
 
     /**
     * Min alpha of the pulse effect
@@ -112,6 +111,18 @@ export class PulseHighlight implements IPlugin {
         this._period = newPeriod;
     }
 
+    public get highlighted() {
+        return this._highlighted;
+    }
+
+    public set highlighted(value) {
+        this._highlighted = value;
+
+        this._highlightMaps = []
+
+        this.updateMaps();
+    }
+
     public init(viewer: Viewer) {
         var self = this;
         this.viewer = viewer;
@@ -131,40 +142,27 @@ export class PulseHighlight implements IPlugin {
         //create uniform and attribute pointers
         this._alphaMinUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMin");
         this._alphaMaxUniformPointer = gl.getUniformLocation(this._shader, "uHighlightAlphaMax");
+        this._highlightingColorUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColor");
+        this._highlightingColor2UniformPointer = gl.getUniformLocation(this._shader, "uHighlightColor2");
         this._sinUniformPointer = gl.getUniformLocation(this._shader, "uSin");
+        this._zOffsetUniformPointer = gl.getUniformLocation(this._shader, "uZOffset");
 
         // Base uniforms
         this._pMatrixUniformPointer = gl.getUniformLocation(this._shader, "uPMatrix");
         this._mvMatrixUniformPointer = gl.getUniformLocation(this._shader, "uMVMatrix");
-        this._clippingPlaneAUniformPointer = gl.getUniformLocation(this._shader, 'uClippingPlaneA');
-        this._clippingAUniformPointer = gl.getUniformLocation(this._shader, 'uClippingA');
-        this._clippingPlaneBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingPlaneB');
-        this._clippingBUniformPointer = gl.getUniformLocation(this._shader, 'uClippingB');
-        this._highlightingColourUniformPointer = gl.getUniformLocation(this._shader, "uHighlightColour");
-        this._stateStyleSamplerUniform = gl.getUniformLocation(this._shader, 'uStateStyleSampler');
 
         // Base attributes
         this._positionAttrPointer = gl.getAttribLocation(this._shader, "aPosition");
-        this._stateAttrPointer = gl.getAttribLocation(this._shader, "aState");
         this._normalAttrPointer = gl.getAttribLocation(this._shader, "aNormal");
 
         //enable vertex attributes arrays
         gl.enableVertexAttribArray(this._positionAttrPointer);
-        gl.enableVertexAttribArray(this._stateAttrPointer);
         gl.enableVertexAttribArray(this._normalAttrPointer);
 
         //reset original shader program
         gl.useProgram(this.viewer._shaderProgram);
 
         this._initialized = true;
-
-        this._originalSetState = viewer['setState'].bind(viewer);
-        viewer['setState'] = this.setState.bind(this);
-
-        this._originalResetStates = viewer['resetStates'].bind(viewer);
-        viewer['resetStates'] = this.resetStates.bind(this);
-
-        this.updateMaps();
     }
 
     public onBeforeDraw() { }
@@ -210,29 +208,10 @@ export class PulseHighlight implements IPlugin {
         gl.disable(gl.CULL_FACE);
         gl.uniformMatrix4fv(this._pMatrixUniformPointer, false, this.viewer._pMatrix);
         gl.uniformMatrix4fv(this._mvMatrixUniformPointer, false, this.viewer.mvMatrix);
-        gl.uniform4fv(this._clippingPlaneAUniformPointer, new Float32Array(this.viewer._clippingPlaneA));
-        gl.uniform4fv(this._clippingPlaneBUniformPointer, new Float32Array(this.viewer._clippingPlaneB));
-        gl.uniform1i(this._clippingAUniformPointer, this.viewer._clippingA ? 1 : 0);
-        gl.uniform1i(this._clippingBUniformPointer, this.viewer._clippingB ? 1 : 0);
-
-        gl.activeTexture(gl.TEXTURE4);
-        gl.bindTexture(gl.TEXTURE_2D, this.viewer._stateStyleTexture);
-        gl.uniform1i(this._stateStyleSamplerUniform, 4);
-
-        gl.uniform4fv(
-            this._highlightingColourUniformPointer,
-            new Float32Array(
-                [
-                    this._highlightingColor[0] / 255.0,
-                    this._highlightingColor[1] / 255.0,
-                    this._highlightingColor[2] / 255.0,
-                    this._highlightingColor[3]
-                ]
-            )
-        );
 
         gl.uniform1f(this._alphaMinUniformPointer, this._alphaMin);
         gl.uniform1f(this._alphaMaxUniformPointer, this._alphaMax);
+        
         if (this._pulseEnabled) {
             gl.uniform1f(this._sinUniformPointer, Math.sin(Math.PI * ((Date.now() + this._periodOffset) % this._period) / this._period));
         } else {
@@ -246,30 +225,86 @@ export class PulseHighlight implements IPlugin {
         gl.disable(gl.BLEND);
     }
 
-    private setState = function (state: State, target: number | number[], modelId?: number) {
-        this._originalSetState(state, target, modelId)
+    private lookupId(id) {
+        let results = []
+        this._highlighted.forEach(highlight => {
+            if (highlight.ids.includes(id)) {
+                results.push(highlight)
+            }
+        })
 
-        this.updateMaps()
-    }
-
-    private resetStates = function (hideSpaces?: boolean, modelId?: number) {
-        this._originalResetStates(hideSpaces, modelId)
-
-        this.updateMaps()
+        return results
     }
 
     private updateMaps = function () {
-        this.viewer._handles.forEach((handle, handleIndex) => {
-            const maps = []
+        const idToColors = {}
+        const prioritaryIdToColors = {}
 
-            for (var n in handle.model.productMaps) {
-                var map = handle.model.productMaps[n];
-                if (map.state === State.HIGHLIGHTED) {
-                    maps.push(map)
+        const newHighlights = []
+
+        const highlighted = reduce(this._highlighted, (result, highlight) => {
+            const ids = highlight.ids
+            const prioritary = highlight.prioritary
+            const color = highlight.color
+
+            each(ids, id => {
+                const highlightsWithThisId = filter(this._highlighted, h => h !== highlight && includes(h.ids, id))
+                const othersArePrioritary = some(highlightsWithThisId, 'prioritary')
+
+                if (highlightsWithThisId.length > 0) {
+                    each(highlightsWithThisId, h => {
+                        if (!h.prioritary) {
+                            pull(h.ids, id)
+                        }
+                    })
+
+                    if (!prioritary || othersArePrioritary) {
+                        pull(highlight.ids, id)
+                    }
+
+                    if (!prioritary && !othersArePrioritary) {
+                        result.push({
+                            colors: [color, ...map(highlightsWithThisId, 'color')],
+                            ids: [id],
+                            prioritary: false,
+                        })
+                    }
                 }
+            })
+
+            if (ids.length) {
+                result.push({
+                    ids,
+                    prioritary,
+                    color,
+                })
             }
 
-            this._maps[handleIndex] = maps
+            return result
+        }, [])
+
+        this.viewer._handles.forEach((handle, handleIndex) => {
+            const vertices = handle.model.vertices
+
+            const highlightMaps = map(highlighted, highlight => {
+                const ids = highlight.ids
+                const colors = highlight.colors || [highlight.color]
+                
+                const maps = []
+
+                ids.forEach(id => {
+                    if (handle.model.productMaps[id]) {
+                        const map = handle.model.productMaps[id]
+                        maps.push(map)
+                    }
+                })
+                return ({
+                    colors,
+                    maps,
+                })
+            })
+            
+            this._highlightMaps[handleIndex] = highlightMaps
         })
     }
 
@@ -282,31 +317,70 @@ export class PulseHighlight implements IPlugin {
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
         gl.vertexAttribPointer(this._positionAttrPointer, 3, gl.FLOAT, false, 0, 0);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
-        gl.vertexAttribPointer(this._stateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-
         gl.bindBuffer(gl.ARRAY_BUFFER, handle._normalBuffer);
         gl.vertexAttribPointer(this._normalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
-        const maps = this._maps[handleIndex];
+        const highlightMaps = this._highlightMaps[handleIndex];
 
-        if (maps && maps.length) {
-            maps.sort(this._zSortFunction.bind(this));
-            maps.forEach(function (map) {
-                const spans = map.spans;
-                spans.forEach(function (span) {
-                    gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
-                })
-            }, handle);
+        if (highlightMaps && highlightMaps.length) {
+            highlightMaps.sort(this._zSortFunction.bind(this));
+            highlightMaps.forEach((highlightMap, index) => {
+                const maps = highlightMap.maps
+                // const shapes = highlightMap.shapes
+                const colors = highlightMap.colors
+
+                const color = colors[0]
+                const color2 = colors[1] || colors[0]
+                
+                gl.uniform4fv(
+                    this._highlightingColorUniformPointer,
+                    new Float32Array(
+                        [
+                            color[0] / 0xFF,
+                            color[1] / 0xFF,
+                            color[2] / 0xFF,
+                            1.0
+                        ]
+                    )
+                );
+
+                gl.uniform4fv(
+                    this._highlightingColor2UniformPointer,
+                    new Float32Array(
+                        [
+                            color2[0] / 0xFF,
+                            color2[1] / 0xFF,
+                            color2[2] / 0xFF,
+                            1.0
+                        ]
+                    )
+                );
+                
+                maps.forEach(function (map) {
+                    const spans = map.spans;
+                    spans.forEach(function (span) {
+                        gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                    })
+                }, handle);
+            })
         }
     }
 
-    private getBboxScreenSpaceDistance = function (bbox) {
-        const worldPosition = [
-            bbox[0] + bbox[3] / 2.0,
-            bbox[1] + bbox[4] / 2.0,
-            bbox[2] + bbox[5] / 2.0,
-        ];
+    private getBboxScreenSpaceDistance = function (bboxes) {
+        let worldPosition = vec3.create();
+        bboxes.forEach(bbox => {
+            worldPosition = vec3.add(
+                vec3.create(),
+                worldPosition,
+                vec3.fromValues(
+                    bbox[0] + bbox[3] * 0.5,
+                    bbox[1] + bbox[4] * 0.5,
+                    bbox[2] + bbox[5] * 0.5,
+                )
+            )
+        });
+
+        worldPosition = vec3.scale(vec3.create(), worldPosition, 1 / bboxes.length)
 
         const viewProjection = mat4.multiply(mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix)
 
@@ -315,8 +389,11 @@ export class PulseHighlight implements IPlugin {
         return z
     }
 
-    private _zSortFunction = function (a: ProductMap, b: ProductMap) {
-        return this.getBboxScreenSpaceDistance(a.bBox) - this.getBboxScreenSpaceDistance(b.bBox)
+    private _zSortFunction = function (a, b) {
+        const aBboxes = a.maps.map(v => v.bBox)
+        const bBboxes = b.maps.map(v => v.bBox)
+
+        return this.getBboxScreenSpaceDistance(aBboxes) - this.getBboxScreenSpaceDistance(bBboxes)
     }
 
     private _initShader = function () {

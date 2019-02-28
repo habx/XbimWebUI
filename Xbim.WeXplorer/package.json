@@ -31,5 +31,8 @@
     "*.js*",
     "*.ts",
     "*.d.ts"
-  ]
+  ],
+  "dependencies": {
+    "lodash": "^4.17.11"
+  }
 }

@@ -109,6 +109,7 @@
     <Content Include="Libs\query-string.js" />
     <Content Include="Libs\system.min.js" />
     <Content Include="Libs\webgl-utils.min.js" />
+    <TypeScriptCompile Include="Viewer\common\mix-colors.ts" />
     <TypeScriptCompile Include="Viewer\lights.ts" />
     <TypeScriptCompile Include="Viewer\matrix\common.ts" />
     <TypeScriptCompile Include="Viewer\matrix\quat.ts" />

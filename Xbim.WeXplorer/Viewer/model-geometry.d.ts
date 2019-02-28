@@ -22,7 +22,6 @@ export declare class ModelGeometry {
     transparentIndex: number;
     productIdLookup: any[];
     getNormal: (normal1: any, normal2: any) => Float32Array;
-    computeNormal: (triangle: any) => Float32Array;
     packNormal: (normal: any) => number[];
     parse(binReader: BinaryReader): Promise<void>;
     load(source: any): void;
