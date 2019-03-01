@@ -355,7 +355,7 @@ export class NavigationArcball implements IPlugin
         eye[0] = origin[0] + distance * Math.cos(yaw) * Math.sin(pitch);
         eye[1] = origin[1] + distance * Math.sin(yaw) * Math.sin(pitch);
         eye[2] = origin[2] + distance * Math.cos(pitch);
-
+        
         mat4.lookAt(this._viewer.mvMatrix, eye, origin, [0, 0, 1]);
 
         this._viewer.fire('cameraupdate', {
@@ -366,6 +366,7 @@ export class NavigationArcball implements IPlugin
         })
         
         this._dirty = false;
+        this._viewer._userAction = true;
     }
 
     private navigate(type, deltaX, deltaY) {

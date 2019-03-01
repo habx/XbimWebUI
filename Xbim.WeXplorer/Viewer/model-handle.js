@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var model_geometry_1 = require("./model-geometry");
 var state_1 = require("./state");
+var product_type_1 = require("./product-type");
 //this class holds pointers to textures, uniforms and data buffers which
 //make up a model in GPU
 var ModelHandle = /** @class */ (function () {
@@ -66,8 +67,8 @@ var ModelHandle = /** @class */ (function () {
         gl.vertexAttribPointer(pointers.PositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._normalBuffer);
         gl.vertexAttribPointer(pointers.NormalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
-        gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
+        // gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._stateBuffer);
         gl.vertexAttribPointer(pointers.StateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this._styleBuffer);
@@ -101,6 +102,25 @@ var ModelHandle = /** @class */ (function () {
             //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             return;
         }
+        if (mode === 'shadow') {
+            // Draw everything but IFCSite
+            var ifcSiteMaps = this.getProductTypeMaps(product_type_1.ProductType.IFCSITE);
+            var spans_1 = [];
+            ifcSiteMaps.forEach(function (map) {
+                map.spans.forEach(function (span) {
+                    spans_1.push(span);
+                });
+            });
+            spans_1.sort(function (a, b) { return a[0] - b[0]; });
+            var start_1 = 0;
+            var end = this._numberOfIndices;
+            spans_1.forEach(function (span) {
+                gl.drawArrays(gl.TRIANGLES, start_1, span[0] - start_1);
+                start_1 = span[1];
+            });
+            gl.drawArrays(gl.TRIANGLES, start_1, end - start_1);
+            return;
+        }
     };
     ModelHandle.prototype.drawProduct = function (id) {
         if (this.stopped)
@@ -123,6 +143,10 @@ var ModelHandle = /** @class */ (function () {
         if (typeof (map) !== 'undefined')
             return map;
         return null;
+    };
+    ModelHandle.prototype.getProductTypeMaps = function (productType) {
+        var result = new Array();
+        return this.model.productTypeMaps[productType] || [];
     };
     ModelHandle.prototype.getProductMaps = function (ids) {
         var _this = this;

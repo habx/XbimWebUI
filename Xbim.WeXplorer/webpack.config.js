@@ -41,6 +41,10 @@ module.exports = {
             {
                 test: /\.ts$/,
                 use: [tsLoader]
+            },
+            {
+                test: /\.(vs|fs|glsl)$/,
+                use: ['navinfo-webpack-glsl-loader']
             }
         ]
     },

@@ -59,13 +59,39 @@ export declare class Viewer {
     navigationMode: 'pan' | 'zoom' | 'orbit' | 'fixed-orbit' | 'free-orbit' | 'none';
     _userAction: boolean;
     _shaderProgram: WebGLProgram;
+    _lightShadowShaderProgram: WebGLProgram;
     _origin: number[];
-    lightA: number[];
-    lightB: number[];
+    shadowMapSize: number;
+    shadowMapBias: number;
+    shadowMapProjectionWidth: number;
+    shadowMapZNear: number;
+    shadowMapZFar: number;
+    shadowUpdateFreq: number;
+    private _timeSinceLastShadow;
+    private _directionalLight1;
+    private _directionalLight2;
+    private _directionalLightMVMatrix;
+    private _directionalLightPMatrix;
+    private _ambientLight;
+    private _shadowMapTexture;
+    shadowEnabled: boolean;
+    shadowIntensity: number;
     private _mvMatrixUniformPointer;
     private _pMatrixUniformPointer;
-    private _lightAUniformPointer;
-    private _lightBUniformPointer;
+    private _shadowMapProjectionMatrixUniformPointer;
+    private _shadowMapModelViewMatrixUniformPointer;
+    private _directionalLight1DiffuseUniformPointer;
+    private _directionalLight1SpecularUniformPointer;
+    private _directionalLight1DirectionUniformPointer;
+    private _directionalLight1ColorUniformPointer;
+    private _directionalLight2DiffuseUniformPointer;
+    private _directionalLight2SpecularUniformPointer;
+    private _directionalLight2DirectionUniformPointer;
+    private _directionalLight2ColorUniformPointer;
+    private _shadowRendererShadowMapProjectionMatrixUniformPointer;
+    private _shadowRendererShadowMapModelViewMatrixUniformPointer;
+    private _ambientLightColorUniformPointer;
+    private _ambientLightDiffuseUniformPointer;
     private _colorCodingUniformPointer;
     private _clippingPlaneAUniformPointer;
     private _clippingAUniformPointer;
@@ -75,6 +101,13 @@ export declare class Viewer {
     private _renderingModeUniformPointer;
     private _highlightingColourUniformPointer;
     private _stateStyleSamplerUniform;
+    private _shadowMapSamplerUniform;
+    private _shadowBiasUniform;
+    private _shadowMapSizeUniform;
+    private _shadowEnabledUniform;
+    private _shadowIntensityUniform;
+    private _lightShadowPositionAttrPointer;
+    private _shadowFrameBuffer;
     private _events;
     private _numberOfActiveModels;
     private _lastStates;
@@ -91,6 +124,16 @@ export declare class Viewer {
     _pMatrix: any;
     private _pointers;
     private _pickableProducts;
+    directionalLight1Pitch: number;
+    directionalLight1Yaw: number;
+    directionalLight1Color: Float32Array;
+    directionalLight1Diffuse: number;
+    directionalLight2Pitch: number;
+    directionalLight2Yaw: number;
+    directionalLight2Color: Float32Array;
+    directionalLight2Diffuse: number;
+    ambientLightColor: Float32Array;
+    ambientLightDiffuse: number;
     /**
     * This is a static function which should always be called before Viewer is instantiated.
     * It will check all prerequisites of the viewer and will report all issues. If Prerequisities.errors contain
@@ -313,13 +356,15 @@ export declare class Viewer {
     private _initTouchNavigationEvents;
     private _initTouchTapEvents;
     private navigate;
+    private _initShadow;
+    drawShadowMap(dT: number): void;
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.
     * If you want interactive model call {@link Viewer#start start()} method. {@link Viewer#frame Frame event} is fired when draw call is finished.
     * @function Viewer#draw
     * @fires Viewer#frame
     */
-    draw(): void;
+    draw(frameTime: number): void;
     private _lastActiveHandlesCount;
     private isChanged;
     /**

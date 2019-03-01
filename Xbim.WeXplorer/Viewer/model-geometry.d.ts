@@ -15,10 +15,14 @@ export declare class ModelGeometry {
     productMaps: {
         [id: number]: ProductMap;
     };
+    productTypeMaps: {
+        [id: number]: [ProductMap];
+    };
     regions: Region[];
     transparentIndex: number;
     productIdLookup: any[];
     getNormal: (normal1: any, normal2: any) => Float32Array;
+    packNormal: (normal: any) => number[];
     parse(binReader: BinaryReader): Promise<void>;
     load(source: any): void;
     onloaded: (geometry: ModelGeometry) => void;

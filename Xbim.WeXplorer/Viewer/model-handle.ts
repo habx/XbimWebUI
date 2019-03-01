@@ -1,6 +1,7 @@
 ﻿import { ModelGeometry, ProductMap, Region } from "./model-geometry";
 import { State } from "./state";
 import { ModelPointers } from "./viewer";
+import { ProductType } from './product-type';
 
 //this class holds pointers to textures, uniforms and data buffers which
 //make up a model in GPU
@@ -114,8 +115,8 @@ export class ModelHandle {
         gl.vertexAttribPointer(pointers.NormalAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
       
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
-        gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, this._productBuffer);
+        // gl.vertexAttribPointer(pointers.ProductAttrPointer, 1, gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this._stateBuffer);
         gl.vertexAttribPointer(pointers.StateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
@@ -127,7 +128,7 @@ export class ModelHandle {
     }
 
     //this function must be called AFTER 'setActive()' function which sets up active buffers and uniforms
-    public draw(mode?: 'solid' | 'transparent'): void {
+    public draw(mode?: 'solid' | 'transparent' | 'shadow'): void {
         if (this.stopped) return;
 
         var gl = this._gl;
@@ -159,6 +160,33 @@ export class ModelHandle {
 
             return;
         }
+
+        if (mode === 'shadow') {
+            // Draw everything but IFCSite
+            const ifcSiteMaps = this.getProductTypeMaps(ProductType.IFCSITE)
+
+            const spans = []
+
+            ifcSiteMaps.forEach(map => {
+                map.spans.forEach(span => {
+                    spans.push(span)
+                })
+            })
+
+
+            spans.sort((a, b) => a[0] - b[0])
+
+            let start = 0;
+            let end = this._numberOfIndices;
+
+            spans.forEach(span => {
+                gl.drawArrays(gl.TRIANGLES, start, span[0] - start);
+                start = span[1];
+            })
+
+            gl.drawArrays(gl.TRIANGLES, start, end - start);
+            return;
+        }
     }
 
 
@@ -187,6 +215,11 @@ export class ModelHandle {
         var map = this.model.productMaps[id];
         if (typeof (map) !== 'undefined') return map;
         return null;
+    }
+
+    public getProductTypeMaps(productType: number): ProductMap[] {
+        let result = new Array<ProductMap>();
+        return this.model.productTypeMaps[productType] || []
     }
 
     public getProductMaps(ids: number[]): ProductMap[] {

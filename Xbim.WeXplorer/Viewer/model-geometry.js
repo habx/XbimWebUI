@@ -42,6 +42,136 @@ var product_type_1 = require("./product-type");
 var mat4_1 = require("./matrix/mat4");
 var vec3_1 = require("./matrix/vec3");
 var tick = function () { return new Promise(function (cb) { return setTimeout(cb, 0); }); };
+var EPSILON = 0.01;
+var approximatelyEqual = function (a, b) { return Math.abs(a - b) < EPSILON; };
+var computeNormal = function (triangle) {
+    var normal = vec3_1.vec3.cross(vec3_1.vec3.create(), vec3_1.vec3.sub(vec3_1.vec3.create(), triangle[1], triangle[0]), vec3_1.vec3.sub(vec3_1.vec3.create(), triangle[2], triangle[0]));
+    var normalizedNormal = vec3_1.vec3.normalize(vec3_1.vec3.create(), normal);
+    return normalizedNormal;
+};
+var centerOfPoints = function (points) {
+    var acc = vec3_1.vec3.create();
+    points.forEach(function (point) {
+        acc = vec3_1.vec3.add(vec3_1.vec3.create(), acc, point);
+    });
+    return vec3_1.vec3.scale(vec3_1.vec3.create(), acc, 1 / points.length);
+};
+/*
+const sortPolygonPoints = (points) => {
+    if (points.length < 3) {
+        return points
+    }
+
+    const center = centerOfPoints(points)
+    const normal = computeNormal([points[0], points[1], center])
+
+    const mvMatrix = mat4.lookAt(mat4.create(), center, vec3.add(vec3.create(), center, normal), [0, 0, 1]);
+    const pMatrix = mat4.ortho(mat4.create(), -200, 200, -200, 200, -1, 1)
+    const matrix = mat4.multiply(mat4.create(), mvMatrix, pMatrix)
+
+    return points.sort((a, b) => {
+        const projA = vec3.transformMat4(vec3.create(), a, mvMatrix)
+        const projB = vec3.transformMat4(vec3.create(), b, mvMatrix)
+        
+        const angleA = Math.atan2(projA[2], projA[0])
+        const angleB = Math.atan2(projB[2], projB[0])
+
+        return angleA - angleB
+    })
+}
+
+const getNormalHash = normal => {
+    const x = Math.round(normal[0] * 100) / 100
+    const y = Math.round(normal[1] * 100) / 100
+    const z = Math.round(normal[2] * 100) / 100
+
+    return `${x.toPrecision(2)} ${y.toPrecision(2)} ${z.toPrecision(2)}`
+}
+
+
+export const getShape = triangles => {
+    const normalToTriangles = {}
+
+    // Regroup triangles with similar normal
+    triangles.forEach(triangle => {
+        const normal = computeNormal(triangle)
+        const normalKey = getNormalHash(normal)
+
+        normalToTriangles[normalKey] = normalToTriangles[normalKey] || []
+        normalToTriangles[normalKey].push(triangle)
+    })
+        
+    let facesTriangles = []
+
+    // Regroup triangles that share a point
+    Object.keys(normalToTriangles).forEach(normalKey => {
+        const normalTriangles = normalToTriangles[normalKey]
+        const faces = []
+
+        normalTriangles.forEach(normalTriangle => {
+            let found = false
+
+            faces.forEach(face => {
+                face.forEach(triangle => {
+                    triangle.forEach(point => {
+                        if (found) {
+                            return false
+                        }
+
+                        if (
+                            vec3.equals(point, normalTriangle[0]) ||
+                            vec3.equals(point, normalTriangle[1]) ||
+                            vec3.equals(point, normalTriangle[2])
+                        ) {
+                            face.push(normalTriangle)
+                            found = true
+                            return false
+                        }
+
+                        return true
+                    })
+
+                    return !face
+                })
+            })
+
+            if (!found) {
+                faces.push([normalTriangle])
+            }
+        })
+
+        facesTriangles = [...faces, ...facesTriangles]
+    })
+
+    const faces = []
+
+    facesTriangles.forEach(faceTriangles => {
+        const face = []
+
+        faceTriangles.forEach(triangle => {
+            triangle.forEach(point => {
+                let found = false;
+                face.forEach(facePoint => {
+                    if (vec3.equals(point, facePoint)) {
+                        found = true
+                    }
+
+                    return !found
+                })
+
+                if (!found) {
+                    face.push(point)
+                }
+            })
+        })
+
+
+        faces.push(sortPolygonPoints(face))
+    })
+
+    return faces
+}
+*/
 var ModelGeometry = /** @class */ (function () {
     function ModelGeometry() {
         this.meter = 1000;
@@ -54,6 +184,7 @@ var ModelGeometry = /** @class */ (function () {
         //	spans: [Int32Array([int, int]),Int32Array([int, int]), ...] //spanning indexes defining shapes of product and it's state
         //};
         this.productMaps = {};
+        this.productTypeMaps = {};
         this.productIdLookup = [];
         this.getNormal = function (normal1, normal2) {
             var lon = normal1 / 252.0 * 2.0 * Math.PI;
@@ -62,6 +193,19 @@ var ModelGeometry = /** @class */ (function () {
             var z = Math.cos(lon) * Math.sin(lat);
             var y = Math.cos(lat);
             return vec3_1.vec3.normalize(vec3_1.vec3.create(), vec3_1.vec3.fromValues(x, y, z));
+        };
+        this.packNormal = function (normal) {
+            var x = normal[0];
+            var y = normal[1];
+            var z = normal[2];
+            var lat = Math.acos(y);
+            var lon = (x || z)
+                ? Math.atan2(x / Math.sin(lat), z / Math.sin(lat))
+                : 0;
+            return [
+                Math.round(252 * (lon / (Math.PI * 2.0))),
+                Math.round(252 * (lat / Math.PI)),
+            ];
         };
     }
     ModelGeometry.prototype.parse = function (binReader) {
@@ -81,13 +225,9 @@ var ModelGeometry = /** @class */ (function () {
                         numVertices = br.readInt32();
                         numTriangles = br.readInt32();
                         numMatrices = br.readInt32();
-                        ;
                         numProducts = br.readInt32();
-                        ;
                         numStyles = br.readInt32();
-                        ;
                         this.meter = br.readFloat32();
-                        ;
                         numRegions = br.readInt16();
                         square = function (arity, count) {
                             if (typeof (arity) == 'undefined' || typeof (count) == 'undefined') {
@@ -115,6 +255,7 @@ var ModelGeometry = /** @class */ (function () {
                         this.transformations = new Float32Array(numTriangles * 3);
                         this.matrices = new Float32Array(square(4, numMatrices * 16));
                         this.productMaps = {};
+                        this.productTypeMaps = {};
                         this.regions = new Array(numRegions);
                         iVertex = 0;
                         iIndexForward = 0;
@@ -166,6 +307,8 @@ var ModelGeometry = /** @class */ (function () {
                             };
                             this.productIdLookup[i + 1] = productLabel;
                             this.productMaps[productLabel] = map;
+                            this.productTypeMaps[prodType] = this.productTypeMaps[prodType] || [];
+                            this.productTypeMaps[prodType].push(map);
                         }
                         iShape = 0;
                         _a.label = 1;
@@ -234,11 +377,12 @@ var ModelGeometry = /** @class */ (function () {
                                 };
                                 _this.productMaps[shape.pLabel] = map;
                             }
-                            _this.normals.set(shapeGeom.normals, iIndex * 2);
+                            // this.normals.set(shapeGeom.normals, iIndex * 2);
                             //switch spaces and openings off by default 
                             var state = map.type == typeEnum.IFCSPACE || map.type == typeEnum.IFCOPENINGELEMENT
                                 ? stateEnum.HIDDEN
                                 : 0xFF; //0xFF is for the default state
+                            var triangle = [];
                             //fix indices to right absolute position. It is relative to the shape.
                             for (var i = 0; i < shapeGeom.indices.length; i++) {
                                 _this.indices[iIndex] = shapeGeom.indices[i] + iVertex / 3;
@@ -246,16 +390,39 @@ var ModelGeometry = /** @class */ (function () {
                                 _this.styleIndices[iIndex] = shape.style;
                                 _this.states[2 * iIndex] = state; //set state
                                 _this.states[2 * iIndex + 1] = 0xFF; //default style
+                                _this.normals[2 * iIndex] = shapeGeom.normals[2 * i];
+                                _this.normals[(2 * iIndex) + 1] = shapeGeom.normals[(2 * i) + 1];
                                 var vertex = vec3_1.vec3.create();
                                 vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                                // Fixing the normals for the doors and windows
+                                if (map.type === typeEnum.IFCDOOR || map.type === typeEnum.IFCDOORSTANDARDCASE || map.type === typeEnum.IFCWINDOW || map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
+                                    if (!triangle[0]) {
+                                        triangle[0] = transformedVertex;
+                                    }
+                                    else if (!triangle[1]) {
+                                        triangle[1] = transformedVertex;
+                                    }
+                                    else if (!triangle[2]) {
+                                        triangle[2] = transformedVertex;
+                                        var computedNormal = computeNormal(triangle);
+                                        var packedNormal = _this.packNormal(computedNormal);
+                                        _this.normals[2 * (iIndex - 2)] = packedNormal[0];
+                                        _this.normals[(2 * (iIndex - 2)) + 1] = packedNormal[1];
+                                        _this.normals[2 * (iIndex - 1)] = packedNormal[0];
+                                        _this.normals[(2 * (iIndex - 1)) + 1] = packedNormal[1];
+                                        _this.normals[2 * iIndex] = packedNormal[0];
+                                        _this.normals[(2 * iIndex) + 1] = packedNormal[1];
+                                        triangle = [];
+                                    }
+                                }
                                 if (map.type === typeEnum.IFCSLAB) {
                                     transformedVertex[2] += _this.meter * 0.02;
                                 }
                                 else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                                    var offsetRatio = _this.meter * 0.004;
+                                    var offsetRatio = _this.meter * 0.003;
                                     var normal = _this.getNormal(_this.normals[2 * iIndex], _this.normals[(2 * iIndex) + 1]);
                                     transformedVertex[0] += normal[0] * offsetRatio;
                                     transformedVertex[1] += normal[1] * offsetRatio;

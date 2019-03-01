@@ -1,5 +1,4 @@
 attribute highp float aStyleIndex;
-attribute highp float aProduct;
 attribute highp vec3 aPosition;
 attribute highp vec2 aState;
 attribute highp vec2 aNormal;
@@ -8,19 +7,12 @@ attribute highp vec2 aNormal;
 uniform mat4 uMVMatrix;
 uniform mat4 uPMatrix;
 
-//Lights
-uniform vec4 ulightA;
-uniform vec4 ulightB;
-
-//Highlighting colour
-uniform vec4 uHighlightColour;
+// Light
+uniform mat4 uShadowMapPMatrix;
+uniform mat4 uShadowMapMVMatrix;
 
 //One meter
 uniform float uMeter;
-
-//sets if all the colours are only to be used for colour coding of IDs
-//this is used for picking
-uniform int uColorCoding;
 
 //used for 3 states in x-ray rendering (no x-ray, only highlighted, only non-highlighted as semitransparent)
 uniform int uRenderingMode;
@@ -32,13 +24,21 @@ uniform int uStyleTextureSize;
 //sampler with user defined styles
 uniform highp sampler2D uStateStyleSampler;
 
+//Highlighting colour
+uniform vec4 uHighlightColour;
+
 //colour to go to fragment shader
-varying vec4 vFrontColor;
-varying vec4 vBackColor;
+varying vec4 vColor;
 //varying position used for clipping in fragment shader
 varying vec3 vPosition;
 //state passed to fragment shader
 varying float vDiscard;
+
+varying vec4 vShadowPos;
+varying vec3 vNormal;
+varying vec3 vBackNormal;
+
+const mat4 texUnitConverter = mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0);
 
 vec3 getNormal() {
 	float U = aNormal[0];
@@ -94,11 +94,10 @@ void main(void) {
 	vDiscard = 0.0;
 
 	//HIDDEN state or xray rendering and no selection or 'x-ray visible' state
-	if (state == 254 || (state == 253 && uHighlightColour.a == 0.0 && uColorCoding == -1))
+	if (state == 254 || (state == 253 && uHighlightColour.a == 0.0))
 	{
 		vDiscard = 1.0;
-		vFrontColor = vec4(0.0, 0.0, 0.0, 0.0);
-		vBackColor = vec4(0.0, 0.0, 0.0, 0.0);
+		vColor = vec4(0.0, 0.0, 0.0, 0.0);
 		vPosition = vec3(0.0, 0.0, 0.0);
 		gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
@@ -106,66 +105,35 @@ void main(void) {
 
 	//transform data to simulate camera perspective and position
 	vec3 vertex = aPosition;
-	vec3 normal = getNormal();
-	vec3 backNormal = normal * -1.0;
+    vNormal = getNormal();
 
-	//product colour coding
-	if (uColorCoding == -2) {
-		float id = floor(aProduct + 0.5);
-		vec4 idColor = getIdColor(id);
-		vFrontColor = idColor;
-		vBackColor = idColor;
-	} else if (uColorCoding >= 0) { //model colour coding
-		float id = float(uColorCoding);
-		vec4 idColor = getIdColor(id);
-		vFrontColor = idColor;
-		vBackColor = idColor;
-	} else {
-		//ulightA[3] represents intensity of the light
-		float lightAIntensity = ulightA[3];
-		vec3 lightADirection = normalize(ulightA.xyz - vertex);
-		float lightBIntensity = ulightB[3];
-		vec3 lightBDirection = normalize(ulightB.xyz - vertex);
+    vShadowPos = texUnitConverter * uShadowMapPMatrix * uShadowMapMVMatrix * vec4(aPosition, 1.0);
 
-		//Light weighting
-		float lightWeightA = max(dot(normal, lightADirection) * lightAIntensity, 0.0);
-		float lightWeightB = max(dot(normal, lightBDirection) * lightBIntensity, 0.0);
-		float backLightWeightA = max(dot(backNormal, lightADirection) * lightAIntensity, 0.0);
-		float backLightWeightB = max(dot(backNormal, lightBDirection) * lightBIntensity, 0.0);
-
-		//minimal constant value is for ambient light
-		float lightWeighting = lightWeightA + lightWeightB + 0.7;
-		float backLightWeighting = backLightWeightA + backLightWeightB + 0.7;
-
-		//get base color or set highlighted colour
-		vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0);
-		if (uRenderingMode == 2) { //x-ray mode 
-			if (state == 252) { //x-ray visible
-				baseColor = getColor();
-			}
-			else {
-				baseColor = vec4(0.0, 0.0, 0.3, 0.5); //x-ray semitransparent light blue colour
-			}
-		}
-		if (state == 253) { //highlighted
-			baseColor = uHighlightColour;
-		}
-		if (uRenderingMode != 2) {
+	vec4 baseColor = vec4(1.0, 1.0, 1.0, 1.0);
+	if (uRenderingMode == 2) { //x-ray mode 
+		if (state == 252) { //x-ray visible
 			baseColor = getColor();
 		}
-
-		//offset semitransparent triangles
-		if (baseColor.a < 0.98 && uRenderingMode == 0)
-		{
-			vec3 trans = -0.002 * uMeter * normalize(normal);
-			vertex = vertex + trans;
+		else {
+			baseColor = vec4(0.0, 0.0, 0.3, 0.5); //x-ray semitransparent light blue colour
 		}
-
-		//transform colour to simulate lighting
-		//preserve original alpha channel
-		vFrontColor = vec4(baseColor.rgb * lightWeighting, baseColor.a);
-		vBackColor = vec4(baseColor.rgb * backLightWeighting, baseColor.a);
 	}
+	if (state == 253) { //highlighted
+		baseColor = uHighlightColour;
+	}
+	if (uRenderingMode != 2) {
+		baseColor = getColor();
+	}
+
+	//offset semitransparent triangles
+	if (baseColor.a < 0.98 && uRenderingMode == 0)
+	{
+		vec3 trans = -0.002 * uMeter * normalize(vNormal);
+		vertex = vertex + trans;
+	}
+
+    vColor = baseColor;
 	vPosition = vertex;
+
 	gl_Position = uPMatrix * uMVMatrix * vec4(vertex, 1.0);
 }

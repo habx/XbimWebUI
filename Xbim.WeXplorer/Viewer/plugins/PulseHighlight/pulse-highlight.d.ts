@@ -18,26 +18,21 @@ export declare class PulseHighlight implements IPlugin {
     private _highlightingColor;
     private _alphaMinUniformPointer;
     private _alphaMaxUniformPointer;
+    private _highlightingColorUniformPointer;
+    private _highlightingColor2UniformPointer;
     private _sinUniformPointer;
+    private _zOffsetUniformPointer;
     private _pMatrixUniformPointer;
     private _mvMatrixUniformPointer;
-    private _clippingPlaneAUniformPointer;
-    private _clippingAUniformPointer;
-    private _clippingPlaneBUniformPointer;
-    private _clippingBUniformPointer;
-    private _highlightingColourUniformPointer;
-    private _stateStyleSamplerUniform;
     private _positionAttrPointer;
-    private _stateAttrPointer;
     private _normalAttrPointer;
     private _period;
     private _periodOffset;
     private _alphaMin;
     private _alphaMax;
-    private _maps;
-    private _originalSetState;
-    private _originalResetStates;
+    private _highlightMaps;
     private _pulseEnabled;
+    private _highlighted;
     /**
     * Min alpha of the pulse effect
     * @member {Number} PulseHighlight#alphaMin
@@ -58,6 +53,7 @@ export declare class PulseHighlight implements IPlugin {
     * @member {Number} PulseHighlight#period
     */
     period: number;
+    highlighted: any[];
     init(viewer: Viewer): void;
     onBeforeDraw(): void;
     onBeforePick(id: number): boolean;
@@ -68,8 +64,7 @@ export declare class PulseHighlight implements IPlugin {
     private setActive;
     private setInactive;
     private draw;
-    private setState;
-    private resetStates;
+    private lookupId;
     private updateMaps;
     private drawHandle;
     private getBboxScreenSpaceDistance;

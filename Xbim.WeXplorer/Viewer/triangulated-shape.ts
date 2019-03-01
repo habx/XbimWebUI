@@ -34,6 +34,7 @@ export class TriangulatedShape {
 
             var isPlanar = numTrianglesInFace > 0;
             numTrianglesInFace = Math.abs(numTrianglesInFace);
+            self.isPlanar = isPlanar
             if (isPlanar) {
                 var normal = binReader.readByteArray(2);
                 //read and set all indices

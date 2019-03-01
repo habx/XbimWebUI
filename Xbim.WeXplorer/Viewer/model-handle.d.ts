@@ -25,10 +25,11 @@ export declare class ModelHandle {
      */
     private static _instancesNum;
     setActive(pointers: ModelPointers): void;
-    draw(mode?: 'solid' | 'transparent'): void;
+    draw(mode?: 'solid' | 'transparent' | 'shadow'): void;
     drawProduct(id: number): void;
     getProductId(renderId: number): number;
     getProductMap(id: number): ProductMap;
+    getProductTypeMaps(productType: number): ProductMap[];
     getProductMaps(ids: number[]): ProductMap[];
     unload(): void;
     feedGPU(): void;
