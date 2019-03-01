@@ -398,7 +398,11 @@ var ModelGeometry = /** @class */ (function () {
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
                                 // Fixing the normals for the doors and windows
-                                if (map.type === typeEnum.IFCDOOR || map.type === typeEnum.IFCDOORSTANDARDCASE || map.type === typeEnum.IFCWINDOW || map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
+                                if (map.type === typeEnum.IFCDOOR ||
+                                    map.type === typeEnum.IFCDOORSTANDARDCASE ||
+                                    map.type === typeEnum.IFCWINDOW ||
+                                    map.type === typeEnum.IFCWINDOWSTANDARDCASE ||
+                                    map.type === typeEnum.IFCSITE) {
                                     if (!triangle[0]) {
                                         triangle[0] = transformedVertex;
                                     }

@@ -1,7 +1,10 @@
 {
   "name": "@habx/xbim-viewer",
-  "version": "2.10.0",
+  "version": "3.0.0",
   "main": "Build/xbim-viewer.js",
+  "peerDependencies": {
+    "lodash": "^4.17.11"
+  },
   "devDependencies": {
     "dts-bundle": "^0.7.2",
     "jsdoc": "3.3.0",
@@ -31,8 +34,5 @@
     "*.js*",
     "*.ts",
     "*.d.ts"
-  ],
-  "dependencies": {
-    "lodash": "^4.17.11"
-  }
+  ]
 }

@@ -51,6 +51,14 @@ module.exports = {
     plugins: plugins,
     resolve: {
         extensions: ['.ts', '.js']
+    },
+    externals: {
+        lodash: {
+            commonjs: 'lodash',
+            commonjs2: 'lodash',
+            amd: 'lodash',
+            root: '_'
+        }
     }
 }
 

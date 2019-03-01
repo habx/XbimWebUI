@@ -416,7 +416,13 @@ export class ModelGeometry {
                     const transformedVertex = vec3.transformMat4(vec3.create(), vertex, shape.transformation);
 
                     // Fixing the normals for the doors and windows
-                    if (map.type === typeEnum.IFCDOOR || map.type === typeEnum.IFCDOORSTANDARDCASE || map.type === typeEnum.IFCWINDOW || map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
+                    if (
+                        map.type === typeEnum.IFCDOOR ||
+                        map.type === typeEnum.IFCDOORSTANDARDCASE ||
+                        map.type === typeEnum.IFCWINDOW ||
+                        map.type === typeEnum.IFCWINDOWSTANDARDCASE ||
+                        map.type === typeEnum.IFCSITE
+                    ) {
                         if (!triangle[0]) {
                             triangle[0] = transformedVertex
                         } else if (!triangle[1]) {
