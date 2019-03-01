@@ -420,8 +420,7 @@ export class ModelGeometry {
                         map.type === typeEnum.IFCDOOR ||
                         map.type === typeEnum.IFCDOORSTANDARDCASE ||
                         map.type === typeEnum.IFCWINDOW ||
-                        map.type === typeEnum.IFCWINDOWSTANDARDCASE ||
-                        map.type === typeEnum.IFCSITE
+                        map.type === typeEnum.IFCWINDOWSTANDARDCASE
                     ) {
                         if (!triangle[0]) {
                             triangle[0] = transformedVertex

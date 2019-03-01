@@ -396,13 +396,13 @@ var ModelGeometry = /** @class */ (function () {
                                 vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
+                                var scale = mat4_1.mat4.getScaling(vec3_1.vec3.create(), shape.transformation);
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
                                 // Fixing the normals for the doors and windows
                                 if (map.type === typeEnum.IFCDOOR ||
                                     map.type === typeEnum.IFCDOORSTANDARDCASE ||
                                     map.type === typeEnum.IFCWINDOW ||
-                                    map.type === typeEnum.IFCWINDOWSTANDARDCASE ||
-                                    map.type === typeEnum.IFCSITE) {
+                                    map.type === typeEnum.IFCWINDOWSTANDARDCASE) {
                                     if (!triangle[0]) {
                                         triangle[0] = transformedVertex;
                                     }
