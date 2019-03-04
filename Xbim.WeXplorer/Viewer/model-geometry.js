@@ -440,12 +440,14 @@ var ModelGeometry = /** @class */ (function () {
                                 _this.vertices[3 * iIndex] = transformedVertex[0];
                                 _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                                 _this.vertices[3 * iIndex + 2] = transformedVertex[2];
-                                xMin = Math.min(transformedVertex[0], xMin);
-                                xMax = Math.max(transformedVertex[0], xMax);
-                                yMin = Math.min(transformedVertex[1], yMin);
-                                yMax = Math.max(transformedVertex[1], yMax);
-                                zMin = Math.min(transformedVertex[2], zMin);
-                                zMax = Math.max(transformedVertex[2], zMax);
+                                if (map.type !== typeEnum.IFCSITE) {
+                                    xMin = Math.min(transformedVertex[0], xMin);
+                                    xMax = Math.max(transformedVertex[0], xMax);
+                                    yMin = Math.min(transformedVertex[1], yMin);
+                                    yMax = Math.max(transformedVertex[1], yMax);
+                                    zMin = Math.min(transformedVertex[2], zMin);
+                                    zMax = Math.max(transformedVertex[2], zMax);
+                                }
                                 iIndex++;
                             }
                             var end = iIndex;

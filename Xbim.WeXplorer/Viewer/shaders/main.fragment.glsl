@@ -40,8 +40,17 @@ float shadowDepthCompare(sampler2D shadowSampler, vec2 uv, float depth) {
     return step(depth, shadowDepth(shadowSampler, uv));
 }
 
+bool isInShadowMap(vec3 vertex)
+{
+    return all(lessThanEqual(vertex, vec3(uShadowMapSize))) && all(greaterThanEqual(vertex, vec3(0)));
+}
+
 float shadowPCF(vec3 vertexPos) {
     if (!uShadowEnabled) {
+        return 1.0;
+    }
+
+    if (!isInShadowMap(vertexPos)) {
         return 1.0;
     }
 
