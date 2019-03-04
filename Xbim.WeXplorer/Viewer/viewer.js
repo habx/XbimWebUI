@@ -1037,7 +1037,7 @@ var Viewer = /** @class */ (function () {
         this._clippingPlaneBUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uClippingPlaneB');
         this._clippingBUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uClippingB');
         this._meterUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uMeter');
-        this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uRenderingMode');
+        // this._renderingModeUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uRenderingMode');
         this._highlightingColourUniformPointer = gl.getUniformLocation(this._shaderProgram, 'uHighlightColour');
         this._stateStyleSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uStateStyleSampler');
         this._shadowMapSamplerUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowMapSampler');
@@ -1644,47 +1644,24 @@ var Viewer = /** @class */ (function () {
             this.highlightingColour[2] / 255.0,
             this.highlightingColour[3]
         ]));
-        gl.uniform1i(this._renderingModeUniformPointer, this.renderingMode);
-        //check for x-ray mode
-        if (this.renderingMode == RenderingMode.XRAY) {
-            gl.enable(gl.BLEND);
-            //two passes - first one for non-transparent objects, second one for all the others
-            gl.disable(gl.CULL_FACE);
-            this._handles.forEach(function (handle) {
-                if (!handle.stopped) {
-                    handle.setActive(_this._pointers);
-                    handle.draw('solid');
-                }
-            });
-            //transparent objects should have only one side so that they are even more transparent.
-            gl.enable(gl.CULL_FACE);
-            this._handles.forEach(function (handle) {
-                if (!handle.stopped) {
-                    handle.setActive(_this._pointers);
-                    handle.draw('transparent');
-                }
-            });
-            gl.disable(gl.BLEND);
-        }
-        else {
-            gl.enable(gl.CULL_FACE);
-            //two runs, first for solids from all models, second for transparent objects from all models
-            //this makes sure that transparent objects are always rendered at the end.
-            this._handles.forEach(function (handle) {
-                if (!handle.stopped) {
-                    handle.setActive(_this._pointers);
-                    handle.draw('solid');
-                }
-            });
-            gl.enable(gl.BLEND);
-            this._handles.forEach(function (handle) {
-                if (!handle.stopped) {
-                    handle.setActive(_this._pointers);
-                    handle.draw('transparent');
-                }
-            });
-            gl.disable(gl.BLEND);
-        }
+        // gl.uniform1i(this._renderingModeUniformPointer, this.renderingMode);
+        gl.enable(gl.CULL_FACE);
+        //two runs, first for solids from all models, second for transparent objects from all models
+        //this makes sure that transparent objects are always rendered at the end.
+        this._handles.forEach(function (handle) {
+            if (!handle.stopped) {
+                handle.setActive(_this._pointers);
+                handle.draw('solid');
+            }
+        });
+        gl.enable(gl.BLEND);
+        this._handles.forEach(function (handle) {
+            if (!handle.stopped) {
+                handle.setActive(_this._pointers);
+                handle.draw('transparent');
+            }
+        });
+        gl.disable(gl.BLEND);
         //call all after-draw plugins
         this._plugins.forEach(function (plugin) {
             if (!plugin.onAfterDraw) {

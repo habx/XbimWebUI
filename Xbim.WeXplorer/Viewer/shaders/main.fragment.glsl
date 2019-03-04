@@ -18,8 +18,6 @@ varying vec4 vColor;
 varying vec3 vNormal;
 //position in real world. This is used for clipping.
 varying vec3 vPosition;
-//state passed to fragment shader
-varying float vDiscard;
 
 varying vec4 vShadowPos;
 
@@ -43,6 +41,10 @@ float shadowDepthCompare(sampler2D shadowSampler, vec2 uv, float depth) {
 }
 
 float shadowPCF(vec3 vertexPos) {
+    if (uShadowEnabled) {
+        return 1.0;
+    }
+
     vec3 normal = vNormal;
     float cosTheta = clamp(dot(normal, -uDirectionalLight1Direction), 0.0, 1.0);
 
@@ -63,14 +65,7 @@ float shadowPCF(vec3 vertexPos) {
 }
 
 void main(void) {
-	//test if this fragment is to be discarded from vertex shader
-	if ( vDiscard > 0.5) discard;
-
-    float shadow = 1.0;
-
-    if (uShadowEnabled) {
-        shadow = shadowPCF(vShadowPos.xyz);
-    }
+    float shadow = shadowPCF(vShadowPos.xyz);
 
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);

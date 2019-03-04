@@ -98,7 +98,6 @@ export declare class Viewer {
     private _clippingPlaneBUniformPointer;
     private _clippingBUniformPointer;
     private _meterUniformPointer;
-    private _renderingModeUniformPointer;
     private _highlightingColourUniformPointer;
     private _stateStyleSamplerUniform;
     private _shadowMapSamplerUniform;
