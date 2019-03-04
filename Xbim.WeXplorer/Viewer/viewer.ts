@@ -1789,7 +1789,11 @@ export class Viewer {
     public drawShadowMap(dT: number) {
         this._timeSinceLastShadow += dT;
 
-        if (this._directionalLight1.updateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
+        if (!this._directionalLight1.updateShadow) {
+            return
+        }
+
+        if (this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
             return;
         }
         
@@ -1882,7 +1886,6 @@ export class Viewer {
             Math.max(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]),
             Math.max(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]),
         )
-        debugger
 
         this._directionalLightPMatrix = mat4.ortho(
             mat4.create(),

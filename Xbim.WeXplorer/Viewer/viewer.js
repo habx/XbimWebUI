@@ -1508,7 +1508,10 @@ var Viewer = /** @class */ (function () {
     Viewer.prototype.drawShadowMap = function (dT) {
         var _this = this;
         this._timeSinceLastShadow += dT;
-        if (this._directionalLight1.updateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
+        if (!this._directionalLight1.updateShadow) {
+            return;
+        }
+        if (this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
             return;
         }
         var model = this._handles && this._handles.length && this._handles[0].model;
@@ -1550,7 +1553,6 @@ var Viewer = /** @class */ (function () {
         bboxCorners[3] = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), bboxCorners[3], this._directionalLightMVMatrix);
         var boundaryMin = vec3_1.vec3.fromValues(Math.min(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]), Math.min(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]), Math.min(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]));
         var boundaryMax = vec3_1.vec3.fromValues(Math.max(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]), Math.max(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]), Math.max(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]));
-        debugger;
         this._directionalLightPMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), boundaryMin[0], // left
         boundaryMax[0], // right
         boundaryMin[1], // bottom

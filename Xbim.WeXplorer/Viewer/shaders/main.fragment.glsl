@@ -54,11 +54,11 @@ float shadowPCF(vec3 vertexPos) {
     float depth = vertexPos.z - bias;
     float shadow = 0.0;
 
-    for (int x = -2; x <= 2; x++)
-        for (int y = -2; y <= 2; y++)
+    for (int x = -1; x <= 1; x++)
+        for (int y = -1; y <= 1; y++)
             shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(x, y) / uShadowMapSize, depth);
 
-    shadow = shadow / 25.0;
+    shadow = shadow / 16.0;
     shadow = min(1.0, shadow + (1.0 - uShadowIntensity));
 
     return shadow;
