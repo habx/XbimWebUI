@@ -1,6 +1,6 @@
 {
   "name": "@habx/xbim-viewer",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "main": "Build/xbim-viewer.js",
   "peerDependencies": {
     "lodash": "^4.17.11"
