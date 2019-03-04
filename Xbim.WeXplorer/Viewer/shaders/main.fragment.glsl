@@ -41,7 +41,7 @@ float shadowDepthCompare(sampler2D shadowSampler, vec2 uv, float depth) {
 }
 
 float shadowPCF(vec3 vertexPos) {
-    if (uShadowEnabled) {
+    if (!uShadowEnabled) {
         return 1.0;
     }
 
