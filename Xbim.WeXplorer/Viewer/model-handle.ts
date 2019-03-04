@@ -164,6 +164,7 @@ export class ModelHandle {
         if (mode === 'shadow') {
             // Draw everything but IFCSite
             const ifcSiteMaps = this.getProductTypeMaps(ProductType.IFCSITE)
+            const ifcSpaceMaps = this.getProductTypeMaps(ProductType.IFCSPACE)
 
             const spans = []
 
@@ -173,14 +174,21 @@ export class ModelHandle {
                 })
             })
 
-
+            ifcSpaceMaps.forEach(map => {
+                map.spans.forEach(span => {
+                    spans.push(span)
+                })
+            })
+            
             spans.sort((a, b) => a[0] - b[0])
 
             let start = 0;
             let end = this._numberOfIndices;
 
-            spans.forEach(span => {
-                gl.drawArrays(gl.TRIANGLES, start, span[0] - start);
+            spans.forEach(span => {   
+                if (span[0] !== start) {
+                    gl.drawArrays(gl.TRIANGLES, start, span[0] - start);
+                }
                 start = span[1];
             })
 

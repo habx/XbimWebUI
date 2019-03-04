@@ -1792,12 +1792,13 @@ export class Viewer {
         if (this._directionalLight1.updateShadow && this._timeSinceLastShadow < (1000 / this.shadowUpdateFreq)) {
             return;
         }
-
-        const meter = this._handles && this._handles.length && this._handles[0].model.meter
-
-        if (!meter) {
+        
+        const model = this._handles && this._handles.length && this._handles[0].model
+        if (!model) {
             return
         }
+        const meter = model && model.meter
+        const bbox = model && model.bbox
 
         const gl = this.gl;
         const size = this.shadowMapSize
@@ -1820,21 +1821,80 @@ export class Viewer {
         const pitch = -directionalLight.pitch + (Math.PI / 2);
         const yaw = directionalLight.yaw;
 
+        const center = vec3.fromValues(
+            bbox[0] + (0.5 * bbox[3]),
+            bbox[1],
+            bbox[2] + (0.5 * bbox[5]),
+        );
+
+        const distance = Math.max(
+            0.8 * bbox[3],
+            bbox[4],
+            0.8 * bbox[5],
+        );
+        
         const eye = [0, 0, 0]
-        const distance = 100 * meter
 
-        eye[0] = distance * Math.cos(yaw) * Math.sin(pitch);
-        eye[1] = distance * Math.sin(yaw) * Math.sin(pitch);
-        eye[2] = distance * Math.cos(pitch);
+        eye[0] = center[0] + (distance * Math.cos(yaw) * Math.sin(pitch));
+        eye[1] = center[1] + (distance * Math.sin(yaw) * Math.sin(pitch));
+        eye[2] = center[2] + (distance * Math.cos(pitch));
 
-        this._directionalLightMVMatrix = mat4.lookAt(mat4.create(), eye, vec3.fromValues(0, 0, 0), vec3.fromValues(0, 1, 0))
+        this._directionalLightMVMatrix = mat4.lookAt(mat4.create(), eye, center, vec3.fromValues(0, 1, 0))
+
+        const bboxCorners = [
+            vec3.fromValues(bbox[0], bbox[1], bbox[2]),
+            vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(bbox[3], bbox[4], bbox[5])),
+            vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(bbox[3], 0, 0)),
+            vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(0, bbox[4], bbox[5])),
+        ];
+
+        bboxCorners[0] = vec3.transformMat4(
+            vec3.create(),
+            bboxCorners[0],
+            this._directionalLightMVMatrix
+        );
+
+        bboxCorners[1] = vec3.transformMat4(
+            vec3.create(),
+            bboxCorners[1],
+            this._directionalLightMVMatrix
+        );
+
+        bboxCorners[2] = vec3.transformMat4(
+            vec3.create(),
+            bboxCorners[2],
+            this._directionalLightMVMatrix
+        );
+
+        bboxCorners[3] = vec3.transformMat4(
+            vec3.create(),
+            bboxCorners[3],
+            this._directionalLightMVMatrix
+        );
+
+        const boundaryMin = vec3.fromValues(
+            Math.min(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]),
+            Math.min(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]),
+            Math.min(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]),
+        )
+        const boundaryMax = vec3.fromValues(
+            Math.max(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]),
+            Math.max(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]),
+            Math.max(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]),
+        )
+        debugger
 
         this._directionalLightPMatrix = mat4.ortho(
             mat4.create(),
-            -this.shadowMapProjectionWidth * meter,
-            this.shadowMapProjectionWidth * meter,
-            -this.shadowMapProjectionWidth * meter,
-            this.shadowMapProjectionWidth * meter,
+            boundaryMin[0], // left
+            boundaryMax[0], // right
+
+            boundaryMin[1], // bottom
+            boundaryMax[1], // top
+
+            // boundaryMin[2], // znear
+            // boundaryMax[2], // zfar
+
             this.shadowMapZNear * meter,
             this.shadowMapZFar * meter,
         )

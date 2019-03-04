@@ -210,7 +210,7 @@ var ModelGeometry = /** @class */ (function () {
     }
     ModelGeometry.prototype.parse = function (binReader) {
         return __awaiter(this, void 0, void 0, function () {
-            var br, magicNumber, version, numShapes, numVertices, numTriangles, numMatrices, numProducts, numStyles, numRegions, square, iVertex, iIndexForward, iIndexBackward, iTransform, iMatrix, stateEnum, typeEnum, i, region, styleMap, iStyle, styleId, R, G, B, A, defaultStyle, i, productLabel, prodType, bBox, map, iShape, repetition, shapeList, iProduct, prodLabel, instanceTypeId, instanceLabel, styleId, transformation, styleItem, matrix, i, j, shapeGeom;
+            var br, magicNumber, version, numShapes, numVertices, numTriangles, numMatrices, numProducts, numStyles, numRegions, square, iVertex, iIndexForward, iIndexBackward, iTransform, iMatrix, stateEnum, typeEnum, xMin, xMax, yMin, yMax, zMin, zMax, i, region, styleMap, iStyle, styleId, R, G, B, A, defaultStyle, i, productLabel, prodType, bBox, map, iShape, repetition, shapeList, iProduct, prodLabel, instanceTypeId, instanceLabel, styleId, transformation, styleItem, matrix, i, j, shapeGeom;
             var _this = this;
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -264,6 +264,12 @@ var ModelGeometry = /** @class */ (function () {
                         iMatrix = 0;
                         stateEnum = state_1.State;
                         typeEnum = product_type_1.ProductType;
+                        xMin = Number.POSITIVE_INFINITY;
+                        xMax = Number.NEGATIVE_INFINITY;
+                        yMin = Number.POSITIVE_INFINITY;
+                        yMax = Number.NEGATIVE_INFINITY;
+                        zMin = Number.POSITIVE_INFINITY;
+                        zMax = Number.NEGATIVE_INFINITY;
                         for (i = 0; i < numRegions; i++) {
                             region = new Region();
                             region.population = br.readInt32();
@@ -396,7 +402,6 @@ var ModelGeometry = /** @class */ (function () {
                                 vertex[0] = shapeGeom.vertices[3 * shapeGeom.indices[i]];
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
-                                var scale = mat4_1.mat4.getScaling(vec3_1.vec3.create(), shape.transformation);
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
                                 // Fixing the normals for the doors and windows
                                 if (map.type === typeEnum.IFCDOOR ||
@@ -435,6 +440,12 @@ var ModelGeometry = /** @class */ (function () {
                                 _this.vertices[3 * iIndex] = transformedVertex[0];
                                 _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                                 _this.vertices[3 * iIndex + 2] = transformedVertex[2];
+                                xMin = Math.min(transformedVertex[0], xMin);
+                                xMax = Math.max(transformedVertex[0], xMax);
+                                yMin = Math.min(transformedVertex[1], yMin);
+                                yMax = Math.max(transformedVertex[1], yMax);
+                                zMin = Math.min(transformedVertex[2], zMin);
+                                zMax = Math.max(transformedVertex[2], zMax);
                                 iIndex++;
                             }
                             var end = iIndex;
@@ -458,6 +469,14 @@ var ModelGeometry = /** @class */ (function () {
                             //throw 'Binary reader is not at the end of the file.';
                         }
                         this.transparentIndex = iIndexForward;
+                        this.bbox = [
+                            xMin,
+                            yMin,
+                            zMin,
+                            xMax - xMin,
+                            yMax - yMin,
+                            zMax - zMin,
+                        ];
                         console.timeEnd('parse');
                         return [2 /*return*/];
                 }

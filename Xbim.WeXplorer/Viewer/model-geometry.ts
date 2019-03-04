@@ -265,6 +265,14 @@ export class ModelGeometry {
         var stateEnum = State;
         var typeEnum = ProductType;
 
+        let xMin = Number.POSITIVE_INFINITY
+        let xMax = Number.NEGATIVE_INFINITY
+
+        let yMin = Number.POSITIVE_INFINITY
+        let yMax = Number.NEGATIVE_INFINITY
+
+        let zMin = Number.POSITIVE_INFINITY
+        let zMax = Number.NEGATIVE_INFINITY
 
         for (var i = 0; i < numRegions; i++) {
             let region = new Region();
@@ -460,6 +468,15 @@ export class ModelGeometry {
                     this.vertices[3 * iIndex + 1] = transformedVertex[1];
                     this.vertices[3 * iIndex + 2] = transformedVertex[2];
 
+                    xMin = Math.min(transformedVertex[0], xMin);
+                    xMax = Math.max(transformedVertex[0], xMax);
+
+                    yMin = Math.min(transformedVertex[1], yMin);
+                    yMax = Math.max(transformedVertex[1], yMax);
+
+                    zMin = Math.min(transformedVertex[2], zMin);
+                    zMax = Math.max(transformedVertex[2], zMax);
+
                     iIndex++;
                 }
 
@@ -483,6 +500,15 @@ export class ModelGeometry {
         }
 
         this.transparentIndex = iIndexForward;
+
+        this.bbox = [
+            xMin,
+            yMin,
+            zMin,
+            xMax - xMin,
+            yMax - yMin,
+            zMax - zMin,
+        ]
 
         console.timeEnd('parse')
     }

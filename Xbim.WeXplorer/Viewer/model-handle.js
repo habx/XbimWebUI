@@ -105,8 +105,14 @@ var ModelHandle = /** @class */ (function () {
         if (mode === 'shadow') {
             // Draw everything but IFCSite
             var ifcSiteMaps = this.getProductTypeMaps(product_type_1.ProductType.IFCSITE);
+            var ifcSpaceMaps = this.getProductTypeMaps(product_type_1.ProductType.IFCSPACE);
             var spans_1 = [];
             ifcSiteMaps.forEach(function (map) {
+                map.spans.forEach(function (span) {
+                    spans_1.push(span);
+                });
+            });
+            ifcSpaceMaps.forEach(function (map) {
                 map.spans.forEach(function (span) {
                     spans_1.push(span);
                 });
@@ -115,7 +121,9 @@ var ModelHandle = /** @class */ (function () {
             var start_1 = 0;
             var end = this._numberOfIndices;
             spans_1.forEach(function (span) {
-                gl.drawArrays(gl.TRIANGLES, start_1, span[0] - start_1);
+                if (span[0] !== start_1) {
+                    gl.drawArrays(gl.TRIANGLES, start_1, span[0] - start_1);
+                }
                 start_1 = span[1];
             });
             gl.drawArrays(gl.TRIANGLES, start_1, end - start_1);
