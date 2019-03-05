@@ -1642,8 +1642,9 @@ var Viewer = /** @class */ (function () {
         gl.uniform1i(this._shadowMapSamplerUniform, 2);
         gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize);
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias);
-        gl.uniform1i(this._shadowEnabledUniform, this.shadowEnabled ? 1 : 0);
-        gl.uniform1f(this._shadowIntensityUniform, Math.min(this.shadowIntensity, 1.0));
+        var shadowIntensity = Math.max(Math.min(this.shadowIntensity, 1.0), 0.0);
+        gl.uniform1i(this._shadowEnabledUniform, (this.shadowEnabled && shadowIntensity !== 0.0) ? 1 : 0);
+        gl.uniform1f(this._shadowIntensityUniform, shadowIntensity);
         gl.uniform3fv(this._directionalLight1ColorUniformPointer, this._directionalLight1.color);
         gl.uniform1f(this._directionalLight1DiffuseUniformPointer, this._directionalLight1.diffuse);
         var directionalLight1Pitch = -this._directionalLight1.pitch + (Math.PI / 2);
