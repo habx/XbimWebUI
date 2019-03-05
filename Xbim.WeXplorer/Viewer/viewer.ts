@@ -1832,17 +1832,15 @@ export class Viewer {
             bbox[2] + (0.5 * bbox[5]),
         );
 
-        const distanceRatio = 1.05
+        const distanceRatio = 1.0
+
+        const diagonal = vec3.len(vec3.fromValues(bbox[3], bbox[4], bbox[5]))
 
         // Distance of the light to the center
-        const distance = Math.max(
-            distanceRatio * (0.5 *  bbox[3]),
-            distanceRatio * bbox[4],
-            distanceRatio * (0.5 * bbox[5]),
-        );
+        const distance = diagonal * 0.5 * distanceRatio
 
         // Computing zFar 
-        const zFar = distanceRatio * vec3.len(vec3.fromValues(bbox[3], bbox[4], bbox[5]))
+        const zFar = distanceRatio * diagonal
         
         const eye = [0, 0, 0]
 

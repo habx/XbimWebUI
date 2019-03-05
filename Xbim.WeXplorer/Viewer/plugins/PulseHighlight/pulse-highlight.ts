@@ -392,6 +392,13 @@ export class PulseHighlight implements IPlugin {
     }
 
     private _zSortFunction = function (a, b) {
+        if (a.prioritary && !b.prioritary) {
+            return -1;
+        }
+        if (b.prioritary && !a.prioritary) {
+            return 1;
+        }
+
         const aBboxes = a.maps.map(v => v.bBox)
         const bBboxes = b.maps.map(v => v.bBox)
 

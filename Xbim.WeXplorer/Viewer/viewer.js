@@ -1536,11 +1536,12 @@ var Viewer = /** @class */ (function () {
         var yaw = directionalLight.yaw;
         // Y must be 0 so that the light doesn't go under the floor level of the model
         var center = vec3_1.vec3.fromValues(bbox[0] + (0.5 * bbox[3]), 0, bbox[2] + (0.5 * bbox[5]));
-        var distanceRatio = 1.05;
+        var distanceRatio = 1.0;
+        var diagonal = vec3_1.vec3.len(vec3_1.vec3.fromValues(bbox[3], bbox[4], bbox[5]));
         // Distance of the light to the center
-        var distance = Math.max(distanceRatio * (0.5 * bbox[3]), distanceRatio * bbox[4], distanceRatio * (0.5 * bbox[5]));
+        var distance = diagonal * 0.5 * distanceRatio;
         // Computing zFar 
-        var zFar = distanceRatio * vec3_1.vec3.len(vec3_1.vec3.fromValues(bbox[3], bbox[4], bbox[5]));
+        var zFar = distanceRatio * diagonal;
         var eye = [0, 0, 0];
         eye[0] = center[0] + (distance * Math.cos(yaw) * Math.sin(pitch));
         eye[1] = center[1] + (distance * Math.sin(yaw) * Math.sin(pitch));

@@ -136,6 +136,12 @@ var PulseHighlight = /** @class */ (function () {
             return z;
         };
         this._zSortFunction = function (a, b) {
+            if (a.prioritary && !b.prioritary) {
+                return -1;
+            }
+            if (b.prioritary && !a.prioritary) {
+                return 1;
+            }
             var aBboxes = a.maps.map(function (v) { return v.bBox; });
             var bBboxes = b.maps.map(function (v) { return v.bBox; });
             return this.getBboxScreenSpaceDistance(aBboxes) - this.getBboxScreenSpaceDistance(bBboxes);
