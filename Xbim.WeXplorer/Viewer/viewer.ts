@@ -1825,17 +1825,24 @@ export class Viewer {
         const pitch = -directionalLight.pitch + (Math.PI / 2);
         const yaw = directionalLight.yaw;
 
+        // Y must be 0 so that the light doesn't go under the floor level of the model
         const center = vec3.fromValues(
             bbox[0] + (0.5 * bbox[3]),
-            bbox[1],
+            0,
             bbox[2] + (0.5 * bbox[5]),
         );
 
+        const distanceRatio = 1.05
+
+        // Distance of the light to the center
         const distance = Math.max(
-            0.8 * bbox[3],
-            bbox[4],
-            0.8 * bbox[5],
+            distanceRatio * (0.5 *  bbox[3]),
+            distanceRatio * bbox[4],
+            distanceRatio * (0.5 * bbox[5]),
         );
+
+        // Computing zFar 
+        const zFar = distanceRatio * vec3.len(vec3.fromValues(bbox[3], bbox[4], bbox[5]))
         
         const eye = [0, 0, 0]
 
@@ -1845,46 +1852,28 @@ export class Viewer {
 
         this._directionalLightMVMatrix = mat4.lookAt(mat4.create(), eye, center, vec3.fromValues(0, 1, 0))
 
-        const bboxCorners = [
+        let bboxCorners = [
             vec3.fromValues(bbox[0], bbox[1], bbox[2]),
             vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(bbox[3], bbox[4], bbox[5])),
             vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(bbox[3], 0, 0)),
             vec3.add(vec3.create(), vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3.fromValues(0, bbox[4], bbox[5])),
         ];
 
-        bboxCorners[0] = vec3.transformMat4(
+        bboxCorners = bboxCorners.map(p => vec3.transformMat4(
             vec3.create(),
-            bboxCorners[0],
+            p,
             this._directionalLightMVMatrix
-        );
-
-        bboxCorners[1] = vec3.transformMat4(
-            vec3.create(),
-            bboxCorners[1],
-            this._directionalLightMVMatrix
-        );
-
-        bboxCorners[2] = vec3.transformMat4(
-            vec3.create(),
-            bboxCorners[2],
-            this._directionalLightMVMatrix
-        );
-
-        bboxCorners[3] = vec3.transformMat4(
-            vec3.create(),
-            bboxCorners[3],
-            this._directionalLightMVMatrix
-        );
+        ))
 
         const boundaryMin = vec3.fromValues(
-            Math.min(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]),
-            Math.min(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]),
-            Math.min(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]),
+            Math.min(...bboxCorners.map(p => p[0])),
+            Math.min(...bboxCorners.map(p => p[1])),
+            Math.min(...bboxCorners.map(p => p[2])),
         )
         const boundaryMax = vec3.fromValues(
-            Math.max(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]),
-            Math.max(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]),
-            Math.max(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]),
+            Math.max(...bboxCorners.map(p => p[0])),
+            Math.max(...bboxCorners.map(p => p[1])),
+            Math.max(...bboxCorners.map(p => p[2])),
         )
 
         this._directionalLightPMatrix = mat4.ortho(
@@ -1895,11 +1884,8 @@ export class Viewer {
             boundaryMin[1], // bottom
             boundaryMax[1], // top
 
-            // boundaryMin[2], // znear
-            // boundaryMax[2], // zfar
-
-            this.shadowMapZNear * meter,
-            this.shadowMapZFar * meter,
+            1 * meter, // znear
+            zFar,
         )
 
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix)

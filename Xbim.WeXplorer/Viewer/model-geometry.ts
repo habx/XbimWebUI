@@ -456,9 +456,9 @@ export class ModelGeometry {
                     if (map.type === typeEnum.IFCSLAB) {
                         transformedVertex[2] += this.meter * 0.02
                     } else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                        const offsetRatio = this.meter * 0.003;
+                        const offsetRatio = this.meter * 0.002;
                         const normal = this.getNormal(this.normals[2 * iIndex], this.normals[(2 * iIndex) + 1])
-
+                        normal[1] = 0
                         transformedVertex[0] += normal[0] * offsetRatio;
                         transformedVertex[1] += normal[1] * offsetRatio;
                         transformedVertex[2] += normal[2] * offsetRatio;
@@ -467,17 +467,15 @@ export class ModelGeometry {
                     this.vertices[3 * iIndex] = transformedVertex[0];
                     this.vertices[3 * iIndex + 1] = transformedVertex[1];
                     this.vertices[3 * iIndex + 2] = transformedVertex[2];
+                    
+                    xMin = Math.min(transformedVertex[0], xMin);
+                    xMax = Math.max(transformedVertex[0], xMax);
 
-                    if (map.type !== typeEnum.IFCSITE) {
-                        xMin = Math.min(transformedVertex[0], xMin);
-                        xMax = Math.max(transformedVertex[0], xMax);
+                    yMin = Math.min(transformedVertex[1], yMin);
+                    yMax = Math.max(transformedVertex[1], yMax);
 
-                        yMin = Math.min(transformedVertex[1], yMin);
-                        yMax = Math.max(transformedVertex[1], yMax);
-
-                        zMin = Math.min(transformedVertex[2], zMin);
-                        zMax = Math.max(transformedVertex[2], zMax);
-                    }
+                    zMin = Math.min(transformedVertex[2], zMin);
+                    zMax = Math.max(transformedVertex[2], zMax);
 
                     iIndex++;
                 }

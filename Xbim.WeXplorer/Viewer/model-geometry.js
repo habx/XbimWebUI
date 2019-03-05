@@ -431,8 +431,9 @@ var ModelGeometry = /** @class */ (function () {
                                     transformedVertex[2] += _this.meter * 0.02;
                                 }
                                 else if (map.type === typeEnum.IFCWALL || map.type === typeEnum.IFCWALLSTANDARDCASE || map.type === typeEnum.IFCWALLELEMENTEDCASE) {
-                                    var offsetRatio = _this.meter * 0.003;
+                                    var offsetRatio = _this.meter * 0.002;
                                     var normal = _this.getNormal(_this.normals[2 * iIndex], _this.normals[(2 * iIndex) + 1]);
+                                    normal[1] = 0;
                                     transformedVertex[0] += normal[0] * offsetRatio;
                                     transformedVertex[1] += normal[1] * offsetRatio;
                                     transformedVertex[2] += normal[2] * offsetRatio;
@@ -440,14 +441,12 @@ var ModelGeometry = /** @class */ (function () {
                                 _this.vertices[3 * iIndex] = transformedVertex[0];
                                 _this.vertices[3 * iIndex + 1] = transformedVertex[1];
                                 _this.vertices[3 * iIndex + 2] = transformedVertex[2];
-                                if (map.type !== typeEnum.IFCSITE) {
-                                    xMin = Math.min(transformedVertex[0], xMin);
-                                    xMax = Math.max(transformedVertex[0], xMax);
-                                    yMin = Math.min(transformedVertex[1], yMin);
-                                    yMax = Math.max(transformedVertex[1], yMax);
-                                    zMin = Math.min(transformedVertex[2], zMin);
-                                    zMax = Math.max(transformedVertex[2], zMax);
-                                }
+                                xMin = Math.min(transformedVertex[0], xMin);
+                                xMax = Math.max(transformedVertex[0], xMax);
+                                yMin = Math.min(transformedVertex[1], yMin);
+                                yMax = Math.max(transformedVertex[1], yMax);
+                                zMin = Math.min(transformedVertex[2], zMin);
+                                zMax = Math.max(transformedVertex[2], zMax);
                                 iIndex++;
                             }
                             var end = iIndex;

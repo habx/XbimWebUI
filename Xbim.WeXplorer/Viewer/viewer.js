@@ -1534,8 +1534,13 @@ var Viewer = /** @class */ (function () {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         var pitch = -directionalLight.pitch + (Math.PI / 2);
         var yaw = directionalLight.yaw;
-        var center = vec3_1.vec3.fromValues(bbox[0] + (0.5 * bbox[3]), bbox[1], bbox[2] + (0.5 * bbox[5]));
-        var distance = Math.max(0.8 * bbox[3], bbox[4], 0.8 * bbox[5]);
+        // Y must be 0 so that the light doesn't go under the floor level of the model
+        var center = vec3_1.vec3.fromValues(bbox[0] + (0.5 * bbox[3]), 0, bbox[2] + (0.5 * bbox[5]));
+        var distanceRatio = 1.05;
+        // Distance of the light to the center
+        var distance = Math.max(distanceRatio * (0.5 * bbox[3]), distanceRatio * bbox[4], distanceRatio * (0.5 * bbox[5]));
+        // Computing zFar 
+        var zFar = distanceRatio * vec3_1.vec3.len(vec3_1.vec3.fromValues(bbox[3], bbox[4], bbox[5]));
         var eye = [0, 0, 0];
         eye[0] = center[0] + (distance * Math.cos(yaw) * Math.sin(pitch));
         eye[1] = center[1] + (distance * Math.sin(yaw) * Math.sin(pitch));
@@ -1547,19 +1552,15 @@ var Viewer = /** @class */ (function () {
             vec3_1.vec3.add(vec3_1.vec3.create(), vec3_1.vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3_1.vec3.fromValues(bbox[3], 0, 0)),
             vec3_1.vec3.add(vec3_1.vec3.create(), vec3_1.vec3.fromValues(bbox[0], bbox[1], bbox[2]), vec3_1.vec3.fromValues(0, bbox[4], bbox[5])),
         ];
-        bboxCorners[0] = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), bboxCorners[0], this._directionalLightMVMatrix);
-        bboxCorners[1] = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), bboxCorners[1], this._directionalLightMVMatrix);
-        bboxCorners[2] = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), bboxCorners[2], this._directionalLightMVMatrix);
-        bboxCorners[3] = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), bboxCorners[3], this._directionalLightMVMatrix);
-        var boundaryMin = vec3_1.vec3.fromValues(Math.min(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]), Math.min(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]), Math.min(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]));
-        var boundaryMax = vec3_1.vec3.fromValues(Math.max(bboxCorners[0][0], bboxCorners[1][0], bboxCorners[2][0], bboxCorners[3][0]), Math.max(bboxCorners[0][1], bboxCorners[1][1], bboxCorners[2][1], bboxCorners[3][1]), Math.max(bboxCorners[0][2], bboxCorners[1][2], bboxCorners[2][2], bboxCorners[3][2]));
+        bboxCorners = bboxCorners.map(function (p) { return vec3_1.vec3.transformMat4(vec3_1.vec3.create(), p, _this._directionalLightMVMatrix); });
+        var boundaryMin = vec3_1.vec3.fromValues(Math.min.apply(Math, bboxCorners.map(function (p) { return p[0]; })), Math.min.apply(Math, bboxCorners.map(function (p) { return p[1]; })), Math.min.apply(Math, bboxCorners.map(function (p) { return p[2]; })));
+        var boundaryMax = vec3_1.vec3.fromValues(Math.max.apply(Math, bboxCorners.map(function (p) { return p[0]; })), Math.max.apply(Math, bboxCorners.map(function (p) { return p[1]; })), Math.max.apply(Math, bboxCorners.map(function (p) { return p[2]; })));
         this._directionalLightPMatrix = mat4_1.mat4.ortho(mat4_1.mat4.create(), boundaryMin[0], // left
         boundaryMax[0], // right
         boundaryMin[1], // bottom
         boundaryMax[1], // top
-        // boundaryMin[2], // znear
-        // boundaryMax[2], // zfar
-        this.shadowMapZNear * meter, this.shadowMapZFar * meter);
+        1 * meter, // znear
+        zFar);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
         gl.enable(gl.CULL_FACE);
