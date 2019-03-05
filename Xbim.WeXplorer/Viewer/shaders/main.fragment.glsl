@@ -54,27 +54,46 @@ float shadowPCF(vec3 vertexPos) {
         return 1.0;
     }
 
+    float result = 0.0;
+
     vec3 normal = vNormal;
     float cosTheta = clamp(dot(normal, -uDirectionalLight1Direction), 0.0, 1.0);
 
     float bias = uShadowBias * tan(acos(cosTheta));
-    bias = clamp(bias, 0.0, 0.01);
+    bias = clamp(bias, 0.0, 0.02);
 
     float depth = vertexPos.z - bias;
     float shadow = 0.0;
 
-    for (int x = -1; x <= 1; x++)
-        for (int y = -1; y <= 1; y++)
-            shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(x, y) / uShadowMapSize, depth);
+    float texel = 1.0 / uShadowMapSize;
+    
+    shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(texel, texel), depth);
+    shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(texel, -texel), depth);
+    shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(-texel, -texel), depth);
+    shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(-texel, texel), depth);
+    
+    // early bailing
+    if (shadow == 4.0) {
+        return 1.0;
+    }
+    
+    if (shadow == 0.0) {
+        return 0.0;
+    }
+    
+    for (int x = -1; x < 1; x++)
+        shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(float(x) * texel, 0), depth);
+    for (int y = -1; y < 1; y++)
+        shadow += shadowDepthCompare(uShadowMapSampler, vertexPos.xy + vec2(0, float(y) * texel), depth);
 
-    shadow = shadow / 16.0;
-    shadow = min(1.0, shadow + (1.0 - uShadowIntensity));
+    shadow = shadow / 9.0;
 
     return shadow;
 }
 
 void main(void) {
     float shadow = shadowPCF(vShadowPos.xyz);
+    shadow = min(1.0, shadow + (1.0 - uShadowIntensity));
 
     vec3 ambient = vec3(0.0);
     vec3 diffuse = vec3(0.0);
