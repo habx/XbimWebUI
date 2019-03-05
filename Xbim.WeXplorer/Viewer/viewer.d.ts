@@ -106,6 +106,7 @@ export declare class Viewer {
     private _shadowEnabledUniform;
     private _shadowIntensityUniform;
     private _lightShadowPositionAttrPointer;
+    private _lightShadowStateAttrPointer;
     private _shadowFrameBuffer;
     private _events;
     private _numberOfActiveModels;

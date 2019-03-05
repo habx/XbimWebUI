@@ -141,41 +141,48 @@ export class RayPicking implements IPlugin {
 
             viewer._handles.forEach((handle) => {
                 if (!handle.stopped && handle.pickable) {
+                    let productIds = []
+                   
                     if (!pickableProducts || !pickableProducts.length) {
-                        // TODO (but probably not worth it, iterating on thousands of products, performance would probably be awful?)
+                        productIds = Object.keys(handle.model.productMaps);
                     } else {
-                        pickableProducts.forEach(productId => {
-                            const product = handle.getProductMap(productId);
+                        productIds = [...pickableProducts]
+                    }
 
-                            const bbox = product.bBox;
-                            const triangles = getBboxTriangles(bbox);
+                    productIds.forEach(productId => {
+                        const product = handle.getProductMap(productId);
 
-                            let hit = false;
+                        const bbox = product.bBox;
+                        const triangles = getBboxTriangles(bbox);
 
-                            // first see if the rays intersect with the bbox of the element (only 12 triangle)
-                            triangles.forEach(triangle => {
-                                const triangleHit = this._rayHitsTriangle(ray, triangle);
+                        let hit = false;
 
-                                if (triangleHit !== false) {
-                                    hit = true;
+                        // first see if the rays intersect with the bbox of the element (only 12 triangle)
+                        triangles.forEach(triangle => {
+                            const triangleHit = this._rayHitsTriangle(ray, triangle);
 
-                                    if (!this.accurate && triangleHit < distance) {
-                                        distance = triangleHit;
-                                        this._hitProduct = product;
-                                        this._hitHandle = handle;
-                                    }
+                            if (triangleHit !== false) {
+                                hit = true;
+
+                                if (!this.accurate && triangleHit < distance) {
+
+                                    debugger
+                                    distance = triangleHit;
+                                    this._hitProduct = product;
+                                    this._hitHandle = handle;
                                 }
-                            })
+                            }
+                        })
 
-                            // if bbox was hit there is a chance the geometry of the element will intersect with the
-                            // ray. Let's try each triangle of the geometry
-                            if (this.accurate && hit) {
+                        // if bbox was hit there is a chance the geometry of the element will intersect with the
+                        // ray. Let's try each triangle of the geometry
+                        if (this.accurate && hit) {
                             const spans = product.spans;
 
                             hit = false;
 
                             spans.forEach(([begin, end]) => {
-                                for(var i = begin; i < end; i += 3) {
+                                for (var i = begin; i < end; i += 3) {
                                     const triangle = [
                                         [
                                             handle.model.vertices[3 * i],
@@ -209,14 +216,14 @@ export class RayPicking implements IPlugin {
                                     }
                                 }
                             })
-                            }
-                        })
-                    }
+                        }
+                    })
                 }
             });
         }
 
         if (!modelId && this._hitProduct) {
+            console.log(this._hitProduct.type)
             return this._hitProduct.renderId;
         } else if (modelId) {
             return (this._hitHandle && this._hitHandle.id) || undefined;

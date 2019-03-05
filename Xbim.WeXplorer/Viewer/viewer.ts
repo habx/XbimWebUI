@@ -355,6 +355,7 @@ export class Viewer {
     private _shadowIntensityUniform: WebGLUniformLocation;
 
     private _lightShadowPositionAttrPointer: number;
+    private _lightShadowStateAttrPointer: number;
 
     private _shadowFrameBuffer: any;
 
@@ -1770,10 +1771,12 @@ export class Viewer {
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix)
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix)
 
-        this._lightShadowPositionAttrPointer = gl.getAttribLocation(this._lightShadowShaderProgram, "aPosition");
+        this._lightShadowPositionAttrPointer = gl.getAttribLocation(this._lightShadowShaderProgram, 'aPosition');
+        this._lightShadowStateAttrPointer = gl.getAttribLocation(this._lightShadowShaderProgram, 'aState');
 
         //enable vertex attributes arrays
         gl.enableVertexAttribArray(this._lightShadowPositionAttrPointer);
+        gl.enableVertexAttribArray(this._lightShadowStateAttrPointer);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
@@ -1896,6 +1899,9 @@ export class Viewer {
             if (!handle.stopped) {
                 gl.bindBuffer(gl.ARRAY_BUFFER, handle._vertexBuffer);
                 gl.vertexAttribPointer(this._lightShadowPositionAttrPointer, 3, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
+                gl.vertexAttribPointer(this._lightShadowStateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
 
                 handle.draw('shadow');
             }

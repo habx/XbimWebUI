@@ -113,72 +113,76 @@ var RayPicking = /** @class */ (function () {
             var distance_1 = Infinity;
             viewer._handles.forEach(function (handle) {
                 if (!handle.stopped && handle.pickable) {
+                    var productIds = [];
                     if (!pickableProducts_1 || !pickableProducts_1.length) {
-                        // TODO (but probably not worth it, iterating on thousands of products, performance would probably be awful?)
+                        productIds = Object.keys(handle.model.productMaps);
                     }
                     else {
-                        pickableProducts_1.forEach(function (productId) {
-                            var product = handle.getProductMap(productId);
-                            var bbox = product.bBox;
-                            var triangles = getBboxTriangles(bbox);
-                            var hit = false;
-                            // first see if the rays intersect with the bbox of the element (only 12 triangle)
-                            triangles.forEach(function (triangle) {
-                                var triangleHit = _this._rayHitsTriangle(ray_1, triangle);
-                                if (triangleHit !== false) {
-                                    hit = true;
-                                    if (!_this.accurate && triangleHit < distance_1) {
-                                        distance_1 = triangleHit;
-                                        _this._hitProduct = product;
-                                        _this._hitHandle = handle;
+                        productIds = pickableProducts_1.slice();
+                    }
+                    productIds.forEach(function (productId) {
+                        var product = handle.getProductMap(productId);
+                        var bbox = product.bBox;
+                        var triangles = getBboxTriangles(bbox);
+                        var hit = false;
+                        // first see if the rays intersect with the bbox of the element (only 12 triangle)
+                        triangles.forEach(function (triangle) {
+                            var triangleHit = _this._rayHitsTriangle(ray_1, triangle);
+                            if (triangleHit !== false) {
+                                hit = true;
+                                if (!_this.accurate && triangleHit < distance_1) {
+                                    debugger;
+                                    distance_1 = triangleHit;
+                                    _this._hitProduct = product;
+                                    _this._hitHandle = handle;
+                                }
+                            }
+                        });
+                        // if bbox was hit there is a chance the geometry of the element will intersect with the
+                        // ray. Let's try each triangle of the geometry
+                        if (_this.accurate && hit) {
+                            var spans = product.spans;
+                            hit = false;
+                            spans.forEach(function (_a) {
+                                var begin = _a[0], end = _a[1];
+                                for (var i = begin; i < end; i += 3) {
+                                    var triangle = [
+                                        [
+                                            handle.model.vertices[3 * i],
+                                            handle.model.vertices[3 * i + 1],
+                                            handle.model.vertices[3 * i + 2],
+                                        ],
+                                        [
+                                            handle.model.vertices[3 * i + 3],
+                                            handle.model.vertices[3 * i + 4],
+                                            handle.model.vertices[3 * i + 5],
+                                        ],
+                                        [
+                                            handle.model.vertices[3 * i + 6],
+                                            handle.model.vertices[3 * i + 7],
+                                            handle.model.vertices[3 * i + 8],
+                                        ],
+                                    ];
+                                    var triangleHit = _this._rayHitsTriangle(ray_1, triangle);
+                                    // If we found a hit, see its distance to the camera. We keep the shortest distance
+                                    // in order to find the first hit object
+                                    if (triangleHit !== false) {
+                                        hit = true;
+                                        if (triangleHit < distance_1) {
+                                            distance_1 = triangleHit;
+                                            _this._hitProduct = product;
+                                            _this._hitHandle = handle;
+                                        }
                                     }
                                 }
                             });
-                            // if bbox was hit there is a chance the geometry of the element will intersect with the
-                            // ray. Let's try each triangle of the geometry
-                            if (_this.accurate && hit) {
-                                var spans = product.spans;
-                                hit = false;
-                                spans.forEach(function (_a) {
-                                    var begin = _a[0], end = _a[1];
-                                    for (var i = begin; i < end; i += 3) {
-                                        var triangle = [
-                                            [
-                                                handle.model.vertices[3 * i],
-                                                handle.model.vertices[3 * i + 1],
-                                                handle.model.vertices[3 * i + 2],
-                                            ],
-                                            [
-                                                handle.model.vertices[3 * i + 3],
-                                                handle.model.vertices[3 * i + 4],
-                                                handle.model.vertices[3 * i + 5],
-                                            ],
-                                            [
-                                                handle.model.vertices[3 * i + 6],
-                                                handle.model.vertices[3 * i + 7],
-                                                handle.model.vertices[3 * i + 8],
-                                            ],
-                                        ];
-                                        var triangleHit = _this._rayHitsTriangle(ray_1, triangle);
-                                        // If we found a hit, see its distance to the camera. We keep the shortest distance
-                                        // in order to find the first hit object
-                                        if (triangleHit !== false) {
-                                            hit = true;
-                                            if (triangleHit < distance_1) {
-                                                distance_1 = triangleHit;
-                                                _this._hitProduct = product;
-                                                _this._hitHandle = handle;
-                                            }
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                    }
+                        }
+                    });
                 }
             });
         }
         if (!modelId && this._hitProduct) {
+            console.log(this._hitProduct.type);
             return this._hitProduct.renderId;
         }
         else if (modelId) {
