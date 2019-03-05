@@ -144,7 +144,7 @@ export class RayPicking implements IPlugin {
                     let productIds = []
                    
                     if (!pickableProducts || !pickableProducts.length) {
-                        productIds = Object.keys(handle.model.productMaps);
+                        // productIds = Object.keys(handle.model.productMaps);
                     } else {
                         productIds = [...pickableProducts]
                     }

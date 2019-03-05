@@ -115,7 +115,7 @@ var RayPicking = /** @class */ (function () {
                 if (!handle.stopped && handle.pickable) {
                     var productIds = [];
                     if (!pickableProducts_1 || !pickableProducts_1.length) {
-                        productIds = Object.keys(handle.model.productMaps);
+                        // productIds = Object.keys(handle.model.productMaps);
                     }
                     else {
                         productIds = pickableProducts_1.slice();
