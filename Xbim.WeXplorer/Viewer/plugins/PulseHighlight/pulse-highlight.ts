@@ -215,7 +215,7 @@ export class PulseHighlight implements IPlugin {
         if (this._pulseEnabled) {
             const date = (Date.now() + this._periodOffset) % this._period
             const d = date / this._period
-            gl.uniform1f(this._sinUniformPointer, 0.5 + Math.sin(Math.PI * 2.0 * d) * 0.5); 
+            gl.uniform1f(this._sinUniformPointer, 0.5 + Math.sin(Math.PI * 2.0 * d) * 0.5);
         } else {
             gl.uniform1f(this._sinUniformPointer, 1.0);
         }
@@ -245,12 +245,15 @@ export class PulseHighlight implements IPlugin {
         const newHighlights = []
 
         const highlighted = reduce(this._highlighted, (result, highlight) => {
-            const ids = highlight.ids
+            const ids = highlight.ids.concat()
             const prioritary = highlight.prioritary
             const color = highlight.color
 
             each(ids, id => {
-                const highlightsWithThisId = filter(this._highlighted, h => h !== highlight && includes(h.ids, id))
+                const highlightsWithThisId = filter(this._highlighted, h => {
+                    return (h !== highlight) && includes(h.ids, id)
+                })
+                
                 const othersArePrioritary = some(highlightsWithThisId, 'prioritary')
 
                 if (highlightsWithThisId.length > 0) {
@@ -274,9 +277,9 @@ export class PulseHighlight implements IPlugin {
                 }
             })
 
-            if (ids.length) {
+            if (highlight.ids.length) {
                 result.push({
-                    ids,
+                    ids: highlight.ids,
                     prioritary,
                     color,
                 })
@@ -284,7 +287,7 @@ export class PulseHighlight implements IPlugin {
 
             return result
         }, [])
-
+        
         this.viewer._handles.forEach((handle, handleIndex) => {
             const vertices = handle.model.vertices
 

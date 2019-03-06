@@ -32,11 +32,13 @@ var PulseHighlight = /** @class */ (function () {
             var prioritaryIdToColors = {};
             var newHighlights = [];
             var highlighted = lodash_1.reduce(this._highlighted, function (result, highlight) {
-                var ids = highlight.ids;
+                var ids = highlight.ids.concat();
                 var prioritary = highlight.prioritary;
                 var color = highlight.color;
                 lodash_1.each(ids, function (id) {
-                    var highlightsWithThisId = lodash_1.filter(_this._highlighted, function (h) { return h !== highlight && lodash_1.includes(h.ids, id); });
+                    var highlightsWithThisId = lodash_1.filter(_this._highlighted, function (h) {
+                        return (h !== highlight) && lodash_1.includes(h.ids, id);
+                    });
                     var othersArePrioritary = lodash_1.some(highlightsWithThisId, 'prioritary');
                     if (highlightsWithThisId.length > 0) {
                         lodash_1.each(highlightsWithThisId, function (h) {
@@ -56,9 +58,9 @@ var PulseHighlight = /** @class */ (function () {
                         }
                     }
                 });
-                if (ids.length) {
+                if (highlight.ids.length) {
                     result.push({
-                        ids: ids,
+                        ids: highlight.ids,
                         prioritary: prioritary,
                         color: color,
                     });
