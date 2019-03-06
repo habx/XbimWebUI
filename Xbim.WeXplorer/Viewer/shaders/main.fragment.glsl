@@ -1,4 +1,4 @@
-precision mediump float;
+precision highp float;
 
 uniform float uShadowBias;
 uniform float uShadowMapSize;
@@ -21,7 +21,7 @@ varying vec3 vPosition;
 
 varying vec4 vShadowPos;
 
-uniform sampler2D uShadowMapSampler;
+uniform highp sampler2D uShadowMapSampler;
 uniform bool uShadowEnabled;
 uniform float uShadowIntensity;
 
