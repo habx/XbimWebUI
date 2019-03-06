@@ -314,7 +314,7 @@ var PulseHighlight = /** @class */ (function () {
         if (this._pulseEnabled) {
             var date = (Date.now() + this._periodOffset) % this._period;
             var d = date / this._period;
-            gl.uniform1f(this._sinUniformPointer, Math.sin((1.0 + (Math.PI * 2) * d) / 2.0));
+            gl.uniform1f(this._sinUniformPointer, 0.5 + Math.sin(Math.PI * 2.0 * d) * 0.5);
         }
         else {
             gl.uniform1f(this._sinUniformPointer, 1.0);
