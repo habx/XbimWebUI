@@ -131,7 +131,6 @@ var RayPicking = /** @class */ (function () {
                             if (triangleHit !== false) {
                                 hit = true;
                                 if (!_this.accurate && triangleHit < distance_1) {
-                                    debugger;
                                     distance_1 = triangleHit;
                                     _this._hitProduct = product;
                                     _this._hitHandle = handle;

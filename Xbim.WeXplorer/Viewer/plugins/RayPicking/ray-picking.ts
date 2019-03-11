@@ -142,7 +142,7 @@ export class RayPicking implements IPlugin {
             viewer._handles.forEach((handle) => {
                 if (!handle.stopped && handle.pickable) {
                     let productIds = []
-                   
+
                     if (!pickableProducts || !pickableProducts.length) {
                         // productIds = Object.keys(handle.model.productMaps);
                     } else {
@@ -165,8 +165,6 @@ export class RayPicking implements IPlugin {
                                 hit = true;
 
                                 if (!this.accurate && triangleHit < distance) {
-
-                                    debugger
                                     distance = triangleHit;
                                     this._hitProduct = product;
                                     this._hitHandle = handle;
@@ -313,7 +311,7 @@ export class RayPicking implements IPlugin {
         if (!inverse) {
             return null;
         }
-           
+
         const tmp = [x, y, 1.0, 1.0];
         tmp[0] = (tmp[0] - viewport[0]) / viewport[2];
         tmp[1] = (tmp[1] - viewport[1]) / viewport[3];
