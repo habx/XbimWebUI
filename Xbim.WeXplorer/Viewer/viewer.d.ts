@@ -67,6 +67,7 @@ export declare class Viewer {
     shadowMapZNear: number;
     shadowMapZFar: number;
     shadowUpdateFreq: number;
+    shadowBackfaceCulling: boolean;
     private _timeSinceLastShadow;
     private _directionalLight1;
     private _directionalLight2;

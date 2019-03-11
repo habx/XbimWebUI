@@ -175,7 +175,7 @@ export class Viewer {
         //semi-transparent object like curtain wall panel or window which is the case most of the time.
         //This is known limitation but there is no plan to change this behaviour.
         gl.enable(gl.DEPTH_TEST);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
         gl.disable(gl.BLEND);
 
         //cache canvas width and height and change it only when size change
@@ -276,12 +276,13 @@ export class Viewer {
     public _shaderProgram: WebGLProgram;
     public _lightShadowShaderProgram: WebGLProgram;
     public _origin: number[];
-    public shadowMapSize: number = 2048;
+    public shadowMapSize: number = 512;
     public shadowMapBias: number = 0.007;
     public shadowMapProjectionWidth: number = 60;
     public shadowMapZNear: number = 10;
     public shadowMapZFar: number = 150;
     public shadowUpdateFreq: number = 5;
+    public shadowBackfaceCulling: boolean = false;
 
     private _timeSinceLastShadow: number = 0;
 
@@ -1892,7 +1893,9 @@ export class Viewer {
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix)
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix)
 
-        gl.enable(gl.CULL_FACE);
+        if (this.shadowBackfaceCulling) {
+            gl.enable(gl.CULL_FACE);
+        }
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach((handle) => {
@@ -2330,9 +2333,7 @@ export class Viewer {
         gl.deleteTexture(texture);
         gl.deleteRenderbuffer(renderBuffer);
         gl.deleteFramebuffer(frameBuffer);
-
-        //set back blending
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
+        
         gl.disable(gl.SCISSOR_TEST);
 
         //decode ID (bit shifting by multiplication)

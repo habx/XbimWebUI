@@ -47,12 +47,13 @@ var Viewer = /** @class */ (function () {
     * @param {string | HTMLCanvasElement} canvas - string ID of the canvas or HTML canvas element.
     */
     function Viewer(canvas) {
-        this.shadowMapSize = 2048;
+        this.shadowMapSize = 512;
         this.shadowMapBias = 0.007;
         this.shadowMapProjectionWidth = 60;
         this.shadowMapZNear = 10;
         this.shadowMapZFar = 150;
         this.shadowUpdateFreq = 5;
+        this.shadowBackfaceCulling = false;
         this._timeSinceLastShadow = 0;
         this._directionalLight1 = {
             color: vec3_1.vec3.fromValues(1.0, 1.0, 1.0),
@@ -194,7 +195,7 @@ var Viewer = /** @class */ (function () {
         //semi-transparent object like curtain wall panel or window which is the case most of the time.
         //This is known limitation but there is no plan to change this behaviour.
         gl.enable(gl.DEPTH_TEST);
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
+        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
         gl.disable(gl.BLEND);
         //cache canvas width and height and change it only when size change
         // it is better to cache this value because it is used frequently and it takes a time to get a value from HTML
@@ -1566,7 +1567,9 @@ var Viewer = /** @class */ (function () {
         zFar);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapProjectionMatrixUniformPointer, false, this._directionalLightPMatrix);
         gl.uniformMatrix4fv(this._shadowRendererShadowMapModelViewMatrixUniformPointer, false, this._directionalLightMVMatrix);
-        gl.enable(gl.CULL_FACE);
+        if (this.shadowBackfaceCulling) {
+            gl.enable(gl.CULL_FACE);
+        }
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach(function (handle) {
@@ -1906,8 +1909,6 @@ var Viewer = /** @class */ (function () {
         gl.deleteTexture(texture);
         gl.deleteRenderbuffer(renderBuffer);
         gl.deleteFramebuffer(frameBuffer);
-        //set back blending
-        gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.DST_ALPHA);
         gl.disable(gl.SCISSOR_TEST);
         //decode ID (bit shifting by multiplication)
         var hasValue = result[3] != 0; //0 transparency is only for no-values
