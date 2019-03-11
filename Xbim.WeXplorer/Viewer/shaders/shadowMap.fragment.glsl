@@ -11,6 +11,6 @@ vec4 encodeFloat(float v) {
 }
 
 void main(void) {
-    if (vDiscard > 0.5 || !gl_FrontFacing) discard;
+    if (vDiscard > 0.5) discard;
     gl_FragColor = encodeFloat(gl_FragCoord.z);
 }
