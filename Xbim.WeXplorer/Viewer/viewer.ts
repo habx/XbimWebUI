@@ -381,6 +381,11 @@ export class Viewer {
 
     private _pickableProducts: number[];
 
+    public freeCameraX = 0;
+    public freeCameraY = 0;
+    public freeCameraShift = 0;
+    public freeCameraEnabled = false;
+
     // Directional Light 1
     public set directionalLight1Pitch(value: number) {
         if (this._directionalLight1.pitch === value) {
@@ -1396,6 +1401,50 @@ export class Viewer {
 
         };
 
+        var handleKeyDown = (event: KeyboardEvent) => {
+            viewer.freeCameraX = viewer.freeCameraX || 0
+            viewer.freeCameraY = viewer.freeCameraY || 0
+            viewer.freeCameraShift = viewer.freeCameraShift || 0
+
+            if (event.keyCode === 38 || event.keyCode === 87 || event.keyCode === 90) {// UP
+                viewer.freeCameraY = 1
+            }
+            if (event.keyCode === 40 || event.keyCode === 83) {// DOWN
+                viewer.freeCameraY = -1
+            }
+            if (event.keyCode === 37 || event.keyCode === 65 || event.keyCode === 81) {// LEFT
+                viewer.freeCameraX = -1
+            }
+            if (event.keyCode === 39 || event.keyCode === 68) {// RIGHT
+                viewer.freeCameraX = 1
+            }
+            if (event.keyCode === 16) { // SHIFT
+                viewer.freeCameraShift = 1
+            }
+        }
+
+        var handleKeyUp = (event: KeyboardEvent) => {
+            viewer.freeCameraX = viewer.freeCameraX || 0
+            viewer.freeCameraY = viewer.freeCameraY || 0
+            viewer.freeCameraShift = viewer.freeCameraShift || 0
+
+            if (event.keyCode === 38 || event.keyCode === 87 || event.keyCode === 90) {// UP
+                viewer.freeCameraY = 0
+            }
+            if (event.keyCode === 40 || event.keyCode === 83) {// DOWN
+                viewer.freeCameraY = 0
+            }
+            if (event.keyCode === 37 || event.keyCode === 65 || event.keyCode === 81) {// LEFT
+                viewer.freeCameraX = 0
+            }
+            if (event.keyCode === 39 || event.keyCode === 68) {// RIGHT
+                viewer.freeCameraX = 0
+            }
+            if (event.keyCode === 16) { // SHIFT
+                viewer.freeCameraShift = 0
+            }
+        }
+
         var handleMouseScroll = (event: WheelEvent) => {
             if (viewer.requireCtrlToZoom && !event.ctrlKey) {
                 return;
@@ -1425,6 +1474,8 @@ export class Viewer {
         //attach callbacks
         this._canvas.addEventListener('mousedown', (event) => handleMouseDown(event), true);
         this._canvas.addEventListener('wheel', (event) => handleMouseScroll(event), true);
+        window.addEventListener('keydown', (event) => handleKeyDown(event), true);
+        window.addEventListener('keyup', (event) => handleKeyUp(event), true);
         window.addEventListener('mouseup', (event) => handleMouseUp(event), true);
         window.addEventListener('mousemove', (event) => handleMouseMove(event), true);
 

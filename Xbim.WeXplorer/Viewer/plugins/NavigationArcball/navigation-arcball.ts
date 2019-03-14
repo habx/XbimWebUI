@@ -302,6 +302,10 @@ export class NavigationArcball implements IPlugin
 
         const timeSinceLastInteraction = this._lastFrameTime - this._lastInteraction;
 
+        if (this._viewer.freeCameraX || this._viewer.freeCameraY) {
+            this._dirty = true
+        }
+
         // In case either property was updated on the viewer setCameraTarget or zoomTo
         // Called before the check on _isDirty in order to set _isDirty if the properties changed
         if (this._viewer._distance !== this._distance) {
@@ -320,14 +324,6 @@ export class NavigationArcball implements IPlugin
 
         const t = Math.min((this._lastFrameTime - this._interpolationStarted) / this._interpolationTime, 1.0);
 
-        var origin = !this._interpolating
-            ? this._origin
-            : vec3.lerp(
-                vec3.create(),
-                vec3.clone(this._origin),
-                vec3.clone(this._targetOrigin),
-                t,
-            );
         var yaw = !this._interpolating
             ? this._yaw
             : interpolateAngle(this._yaw, this._targetYaw, t);
@@ -339,6 +335,47 @@ export class NavigationArcball implements IPlugin
         var distance = !this._interpolating
             ? this._distance
             : this._distance + (this._targetDistance - this._distance) * t;
+
+        if (this._viewer.freeCameraEnabled && (this._viewer.freeCameraX || this._viewer.freeCameraY)) {
+            const viewer = this._viewer
+            let meter = 1;
+
+            viewer._handles.forEach(function (handle) {
+                meter = handle.model.meter
+            }, viewer);
+
+            const speed = Math.max(distance / meter, 5) // in m/s
+            const ratio = (this._viewer.freeCameraShift ? 10 : 1) * (speed * meter) / 1000
+
+            const x = (this._viewer.freeCameraX || 0) * ratio
+            const y = (this._viewer.freeCameraY || 0) * ratio
+
+            let walkVec = vec3.fromValues(x, y, 0)
+
+            const cosY = Math.cos(-yaw)
+            const sinY = Math.sin(-yaw)
+            const cosP = Math.cos(pitch - Math.PI * 0.5)
+            const sinP = Math.sin(pitch - Math.PI * 0.5)
+
+            walkVec = vec3.fromValues(
+                (x * sinY) + (-y * cosY * cosP),
+                (x * cosY) + (y * sinY * cosP),
+                sinP * y,
+            )
+
+            vec3.add(this._origin, this._origin, walkVec)
+            console.log('updated origin')
+        }
+
+
+        var origin = !this._interpolating
+            ? this._origin
+            : vec3.lerp(
+                vec3.create(),
+                vec3.clone(this._origin),
+                vec3.clone(this._targetOrigin),
+                t,
+            );
 
         const interpolating = t < 1.0
 
@@ -355,7 +392,7 @@ export class NavigationArcball implements IPlugin
         eye[0] = origin[0] + distance * Math.cos(yaw) * Math.sin(pitch);
         eye[1] = origin[1] + distance * Math.sin(yaw) * Math.sin(pitch);
         eye[2] = origin[2] + distance * Math.cos(pitch);
-        
+
         mat4.lookAt(this._viewer.mvMatrix, eye, origin, [0, 0, 1]);
 
         this._viewer.fire('cameraupdate', {
@@ -364,7 +401,7 @@ export class NavigationArcball implements IPlugin
             pitch,
             yaw,
         })
-        
+
         this._dirty = false;
         this._viewer._userAction = true;
     }

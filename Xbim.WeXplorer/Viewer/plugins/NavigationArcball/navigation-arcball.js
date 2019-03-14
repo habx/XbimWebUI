@@ -284,6 +284,9 @@ var NavigationArcball = /** @class */ (function () {
         var dT = Date.now() - this._lastFrameTime;
         this._lastFrameTime += dT;
         var timeSinceLastInteraction = this._lastFrameTime - this._lastInteraction;
+        if (this._viewer.freeCameraX || this._viewer.freeCameraY) {
+            this._dirty = true;
+        }
         // In case either property was updated on the viewer setCameraTarget or zoomTo
         // Called before the check on _isDirty in order to set _isDirty if the properties changed
         if (this._viewer._distance !== this._distance) {
@@ -298,9 +301,6 @@ var NavigationArcball = /** @class */ (function () {
         if (!this._dirty && !this._interpolating)
             return;
         var t = Math.min((this._lastFrameTime - this._interpolationStarted) / this._interpolationTime, 1.0);
-        var origin = !this._interpolating
-            ? this._origin
-            : vec3_1.vec3.lerp(vec3_1.vec3.create(), vec3_1.vec3.clone(this._origin), vec3_1.vec3.clone(this._targetOrigin), t);
         var yaw = !this._interpolating
             ? this._yaw
             : interpolateAngle(this._yaw, this._targetYaw, t);
@@ -311,6 +311,28 @@ var NavigationArcball = /** @class */ (function () {
         var distance = !this._interpolating
             ? this._distance
             : this._distance + (this._targetDistance - this._distance) * t;
+        if (this._viewer.freeCameraEnabled && (this._viewer.freeCameraX || this._viewer.freeCameraY)) {
+            var viewer = this._viewer;
+            var meter_1 = 1;
+            viewer._handles.forEach(function (handle) {
+                meter_1 = handle.model.meter;
+            }, viewer);
+            var speed = Math.max(distance / meter_1, 5); // in m/s
+            var ratio = (this._viewer.freeCameraShift ? 10 : 1) * (speed * meter_1) / 1000;
+            var x = (this._viewer.freeCameraX || 0) * ratio;
+            var y = (this._viewer.freeCameraY || 0) * ratio;
+            var walkVec = vec3_1.vec3.fromValues(x, y, 0);
+            var cosY = Math.cos(-yaw);
+            var sinY = Math.sin(-yaw);
+            var cosP = Math.cos(pitch - Math.PI * 0.5);
+            var sinP = Math.sin(pitch - Math.PI * 0.5);
+            walkVec = vec3_1.vec3.fromValues((x * sinY) + (-y * cosY * cosP), (x * cosY) + (y * sinY * cosP), sinP * y);
+            vec3_1.vec3.add(this._origin, this._origin, walkVec);
+            console.log('updated origin');
+        }
+        var origin = !this._interpolating
+            ? this._origin
+            : vec3_1.vec3.lerp(vec3_1.vec3.create(), vec3_1.vec3.clone(this._origin), vec3_1.vec3.clone(this._targetOrigin), t);
         var interpolating = t < 1.0;
         if (!interpolating && this._interpolating) {
             this._setDistance(this._targetDistance);

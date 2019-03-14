@@ -125,6 +125,10 @@ export declare class Viewer {
     _pMatrix: any;
     private _pointers;
     private _pickableProducts;
+    freeCameraX: number;
+    freeCameraY: number;
+    freeCameraShift: number;
+    freeCameraEnabled: boolean;
     directionalLight1Pitch: number;
     directionalLight1Yaw: number;
     directionalLight1Color: Float32Array;
