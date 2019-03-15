@@ -61,7 +61,8 @@ export declare class Viewer {
     _shaderProgram: WebGLProgram;
     _lightShadowShaderProgram: WebGLProgram;
     _origin: number[];
-    shadowMapSize: number;
+    private _shadowMapSize;
+    private _shadowMapSizeChanged;
     shadowMapBias: number;
     shadowMapProjectionWidth: number;
     shadowMapZNear: number;
@@ -69,6 +70,7 @@ export declare class Viewer {
     shadowUpdateFreq: number;
     shadowBackfaceCulling: boolean;
     private _timeSinceLastShadow;
+    shadowMapSize: number;
     private _directionalLight1;
     private _directionalLight2;
     private _directionalLightMVMatrix;
@@ -362,6 +364,7 @@ export declare class Viewer {
     private _initTouchTapEvents;
     private navigate;
     private _initShadow;
+    private _createShadowMap;
     drawShadowMap(dT: number): void;
     /**
     * This is a static draw method. You can use it if you just want to render model once with no navigation and interaction.

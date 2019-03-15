@@ -276,7 +276,8 @@ export class Viewer {
     public _shaderProgram: WebGLProgram;
     public _lightShadowShaderProgram: WebGLProgram;
     public _origin: number[];
-    public shadowMapSize: number = 512;
+    private _shadowMapSize: number = 512;
+    private _shadowMapSizeChanged = false;
     public shadowMapBias: number = 0.007;
     public shadowMapProjectionWidth: number = 60;
     public shadowMapZNear: number = 10;
@@ -285,6 +286,25 @@ export class Viewer {
     public shadowBackfaceCulling: boolean = false;
 
     private _timeSinceLastShadow: number = 0;
+
+    public get shadowMapSize() {
+        return this._shadowMapSize;
+    }
+
+    public set shadowMapSize(v) {
+        if (this._shadowMapSize === v) {
+            return
+        }
+
+        this._shadowMapSize = v
+
+        this._shadowMapSizeChanged = true;
+
+        if (this._shadowMapTexture) {
+            this._timeSinceLastShadow = 0;
+            this._directionalLight1.updateShadow = true;
+        }
+    }
 
     private _directionalLight1: DirectionalLight = {
         color: vec3.fromValues(1.0, 1.0, 1.0),
@@ -1786,29 +1806,19 @@ export class Viewer {
 
     private _initShadow() {
         const gl = this.gl;
-        const size = this.shadowMapSize
+        const size = this._shadowMapSize
 
         gl.useProgram(this._lightShadowShaderProgram)
 
-        var shadowFramebuffer = gl.createFramebuffer()
-        gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFramebuffer)
-
         this._shadowMapTexture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+        this._shadowFrameBuffer = gl.createFramebuffer()
+        this._shadowMapRenderBuffer = gl.createRenderbuffer()
         
-        var renderBuffer = gl.createRenderbuffer()
-        gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer)
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size)
+        this._createShadowMap()
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this._shadowFrameBuffer)
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._shadowMapTexture, 0)
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, renderBuffer)
-
-        gl.bindTexture(gl.TEXTURE_2D, null)
-        gl.bindRenderbuffer(gl.RENDERBUFFER, null)
-        
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this._shadowMapRenderBuffer)
         
         // We create an orthographic projection and view matrix from which our light
         // will vie the scene
@@ -1832,13 +1842,27 @@ export class Viewer {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
-        this._shadowFrameBuffer = shadowFramebuffer
-
-        gl.useProgram(this._shaderProgram);
+        gl.useProgram(this._shaderProgram)
 
         gl.activeTexture(gl.TEXTURE2)
         gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture)
         gl.uniform1i(this._shadowMapSamplerUniform, 0)
+    }
+
+    private _createShadowMap() {
+        const gl = this.gl;
+        const size = this._shadowMapSize
+        
+        gl.useProgram(this._lightShadowShaderProgram)
+        
+        gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+        gl.bindTexture(gl.TEXTURE_2D, null)
+
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this._shadowMapRenderBuffer)
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, size, size)
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null)
     }
 
     public drawShadowMap(dT: number) {
@@ -1860,12 +1884,18 @@ export class Viewer {
         const bbox = model && model.bbox
 
         const gl = this.gl;
-        const size = this.shadowMapSize
+
+        const size = this._shadowMapSize
         const shadowFrameBuffer = this._shadowFrameBuffer
 
         const directionalLight = this._directionalLight1
 
         gl.useProgram(this._lightShadowShaderProgram);
+
+        if (this._shadowMapSizeChanged) {
+            this._createShadowMap()
+            this._shadowMapSizeChanged = false;
+        }
 
         // Draw to our off screen drawing buffer
         gl.bindFramebuffer(gl.FRAMEBUFFER, shadowFrameBuffer)
@@ -2055,7 +2085,7 @@ export class Viewer {
         gl.bindTexture(gl.TEXTURE_2D, this._shadowMapTexture)
         gl.uniform1i(this._shadowMapSamplerUniform, 2)
 
-        gl.uniform1f(this._shadowMapSizeUniform, this.shadowMapSize)
+        gl.uniform1f(this._shadowMapSizeUniform, this._shadowMapSize)
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias)
 
         const shadowIntensity = Math.max(Math.min(this.shadowIntensity, 1.0), 0.0)
