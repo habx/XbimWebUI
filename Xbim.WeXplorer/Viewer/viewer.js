@@ -55,6 +55,7 @@ var Viewer = /** @class */ (function () {
         this.shadowMapZFar = 150;
         this.shadowUpdateFreq = 5;
         this.shadowBackfaceCulling = false;
+        this.styleModifier = function () { return null; };
         this._timeSinceLastShadow = 0;
         this._directionalLight1 = {
             color: vec3_1.vec3.fromValues(1.0, 1.0, 1.0),
@@ -914,7 +915,7 @@ var Viewer = /** @class */ (function () {
         geometry.onerror = function (msg) {
             viewer.error(msg);
         };
-        geometry.load(model);
+        geometry.load(model, this.styleModifier);
     };
     //this is a private function used to add loaded geometry as a new handle and to set up camera and 
     //default view if this is the first geometry loaded
@@ -1579,6 +1580,9 @@ var Viewer = /** @class */ (function () {
     };
     Viewer.prototype.drawShadowMap = function (dT) {
         var _this = this;
+        if (!this._handles.length) {
+            return;
+        }
         this._timeSinceLastShadow += dT;
         if (!this._directionalLight1.updateShadow) {
             return;

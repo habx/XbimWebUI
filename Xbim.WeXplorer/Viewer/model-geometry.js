@@ -208,7 +208,20 @@ var ModelGeometry = /** @class */ (function () {
             ];
         };
     }
-    ModelGeometry.prototype.parse = function (binReader) {
+    ModelGeometry.prototype.getStyleColor = function (iStyle) {
+        var R = this.styles[(iStyle * 4)];
+        var G = this.styles[(iStyle * 4) + 1];
+        var B = this.styles[(iStyle * 4) + 2];
+        var A = this.styles[(iStyle * 4) + 3];
+        return [R, G, B, A];
+    };
+    ModelGeometry.prototype.setStyleColor = function (iStyle, color) {
+        this.styles[(iStyle * 4)] = color[0];
+        this.styles[(iStyle * 4) + 1] = color[1];
+        this.styles[(iStyle * 4) + 2] = color[2];
+        this.styles[(iStyle * 4) + 3] = color[3];
+    };
+    ModelGeometry.prototype.parse = function (binReader, styleModifier) {
         return __awaiter(this, void 0, void 0, function () {
             var br, magicNumber, version, numShapes, numVertices, numTriangles, numMatrices, numProducts, numStyles, numRegions, square, iVertex, iIndexForward, iIndexBackward, iTransform, iMatrix, stateEnum, typeEnum, xMin, xMax, yMin, yMax, zMin, zMax, i, region, styleMap, iStyle, styleId, R, G, B, A, defaultStyle, i, productLabel, prodType, bBox, map, iShape, repetition, shapeList, iProduct, prodLabel, instanceTypeId, instanceLabel, styleId, transformation, styleItem, matrix, i, j, shapeGeom;
             var _this = this;
@@ -403,6 +416,13 @@ var ModelGeometry = /** @class */ (function () {
                                 vertex[1] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 1];
                                 vertex[2] = shapeGeom.vertices[3 * shapeGeom.indices[i] + 2];
                                 var transformedVertex = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), vertex, shape.transformation);
+                                if (styleModifier) {
+                                    var styleColor = _this.getStyleColor(shape.style);
+                                    var newColor = styleModifier(map, styleColor);
+                                    if (newColor) {
+                                        _this.setStyleColor(shape.style, newColor);
+                                    }
+                                }
                                 // Fixing the normals for the doors and windows
                                 if (map.type === typeEnum.IFCDOOR ||
                                     map.type === typeEnum.IFCDOORSTANDARDCASE ||
@@ -485,7 +505,7 @@ var ModelGeometry = /** @class */ (function () {
         });
     };
     //Source has to be either URL of wexBIM file or Blob representing wexBIM file
-    ModelGeometry.prototype.load = function (source) {
+    ModelGeometry.prototype.load = function (source, styleModifier) {
         //binary reading
         var br = new binary_reader_1.BinaryReader();
         var self = this;
@@ -493,7 +513,7 @@ var ModelGeometry = /** @class */ (function () {
             return __awaiter(this, void 0, void 0, function () {
                 return __generator(this, function (_a) {
                     switch (_a.label) {
-                        case 0: return [4 /*yield*/, self.parse(br)];
+                        case 0: return [4 /*yield*/, self.parse(br, styleModifier)];
                         case 1:
                             _a.sent();
                             if (self.onloaded) {

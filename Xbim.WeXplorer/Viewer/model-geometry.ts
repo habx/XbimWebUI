@@ -209,7 +209,22 @@ export class ModelGeometry {
         ]
     }
 
-    public async parse(binReader: BinaryReader) {
+    private getStyleColor(iStyle) {
+        const R = this.styles[(iStyle * 4)]
+        const G = this.styles[(iStyle * 4) + 1]
+        const B = this.styles[(iStyle * 4) + 2]
+        const A = this.styles[(iStyle * 4) + 3]
+
+        return [R, G, B, A]
+    }
+    private setStyleColor(iStyle, color) {
+        this.styles[(iStyle * 4)] = color[0]
+        this.styles[(iStyle * 4) + 1] = color[1]
+        this.styles[(iStyle * 4) + 2] = color[2]
+        this.styles[(iStyle * 4) + 3] = color[3]
+    }
+
+    public async parse(binReader: BinaryReader, styleModifier) {
         console.time('parse')
         var br = binReader;
         var magicNumber = br.readInt32();
@@ -423,6 +438,16 @@ export class ModelGeometry {
 
                     const transformedVertex = vec3.transformMat4(vec3.create(), vertex, shape.transformation);
 
+                    if (styleModifier) {
+                        const styleColor = this.getStyleColor(shape.style)
+
+                        const newColor = styleModifier(map, styleColor)
+
+                        if (newColor) {
+                            this.setStyleColor(shape.style, newColor)
+                        }
+                    }
+
                     // Fixing the normals for the doors and windows
                     if (
                         map.type === typeEnum.IFCDOOR ||
@@ -514,12 +539,12 @@ export class ModelGeometry {
     }
 
     //Source has to be either URL of wexBIM file or Blob representing wexBIM file
-    public load(source) {
+    public load(source, styleModifier) {
         //binary reading
         var br = new BinaryReader();
         var self = this;
         br.onloaded = async function () {
-            await self.parse(br);
+            await self.parse(br, styleModifier);
             if (self.onloaded) {
                 self.onloaded(this);
             }

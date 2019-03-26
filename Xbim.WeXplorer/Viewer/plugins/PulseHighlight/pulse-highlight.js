@@ -304,6 +304,7 @@ var PulseHighlight = /** @class */ (function () {
         gl.useProgram(this.viewer._shaderProgram);
     };
     PulseHighlight.prototype.draw = function () {
+        return;
         if (!this._initialized)
             return;
         var gl = this.viewer.gl;

@@ -69,6 +69,7 @@ export declare class Viewer {
     shadowMapZFar: number;
     shadowUpdateFreq: number;
     shadowBackfaceCulling: boolean;
+    styleModifier: () => any;
     private _timeSinceLastShadow;
     shadowMapSize: number;
     private _directionalLight1;

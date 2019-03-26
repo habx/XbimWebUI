@@ -23,8 +23,10 @@ export declare class ModelGeometry {
     productIdLookup: any[];
     getNormal: (normal1: any, normal2: any) => Float32Array;
     packNormal: (normal: any) => number[];
-    parse(binReader: BinaryReader): Promise<void>;
-    load(source: any): void;
+    private getStyleColor;
+    private setStyleColor;
+    parse(binReader: BinaryReader, styleModifier: any): Promise<void>;
+    load(source: any, styleModifier: any): void;
     onloaded: (geometry: ModelGeometry) => void;
     onerror: (message?: string) => void;
 }

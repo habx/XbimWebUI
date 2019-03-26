@@ -285,6 +285,8 @@ export class Viewer {
     public shadowUpdateFreq: number = 5;
     public shadowBackfaceCulling: boolean = false;
 
+    public styleModifier = () => null
+
     private _timeSinceLastShadow: number = 0;
 
     public get shadowMapSize() {
@@ -1049,7 +1051,7 @@ export class Viewer {
         geometry.onerror = function (msg) {
             viewer.error(msg);
         }
-        geometry.load(model);
+        geometry.load(model, this.styleModifier);
     }
 
     //this is a private function used to add loaded geometry as a new handle and to set up camera and 
@@ -1866,6 +1868,10 @@ export class Viewer {
     }
 
     public drawShadowMap(dT: number) {
+        if (!this._handles.length) {
+            return
+        }
+
         this._timeSinceLastShadow += dT;
 
         if (!this._directionalLight1.updateShadow) {
@@ -1977,6 +1983,7 @@ export class Viewer {
         if (this.shadowBackfaceCulling) {
             gl.enable(gl.CULL_FACE);
         }
+
         //two runs, first for solids from all models, second for transparent objects from all models
         //this makes sure that transparent objects are always rendered at the end.
         this._handles.forEach((handle) => {
@@ -1986,7 +1993,7 @@ export class Viewer {
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, handle._stateBuffer);
                 gl.vertexAttribPointer(this._lightShadowStateAttrPointer, 2, gl.UNSIGNED_BYTE, false, 0, 0);
-
+                
                 handle.draw('shadow');
             }
         });
