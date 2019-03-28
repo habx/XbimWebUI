@@ -201,7 +201,6 @@ export class PulseHighlight implements IPlugin {
 
 
     private draw() {
-        return
         if (!this._initialized) return;
         var gl = this.viewer.gl;
 
