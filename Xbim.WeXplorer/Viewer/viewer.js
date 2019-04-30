@@ -50,6 +50,7 @@ var Viewer = /** @class */ (function () {
         this._shadowMapSize = 512;
         this._shadowMapSizeChanged = false;
         this.shadowMapBias = 0.007;
+        this.shadowESMRatio = 10.0;
         this.shadowMapProjectionWidth = 60;
         this.shadowMapZNear = 10;
         this.shadowMapZFar = 150;
@@ -923,6 +924,7 @@ var Viewer = /** @class */ (function () {
         var viewer = this;
         var gl = this.gl;
         var handle = new model_handle_1.ModelHandle(viewer.gl, geometry);
+        handle.viewer = viewer;
         viewer._handles.push(handle);
         handle.feedGPU();
         //get one meter size from model and set it to shader
@@ -1070,6 +1072,7 @@ var Viewer = /** @class */ (function () {
         this._shadowEnabledUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowEnabled');
         this._shadowIntensityUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowIntensity');
         this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
+        this._shadowESMRatioUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowESMRatio');
         this._pointers = new ModelPointers(gl, this._shaderProgram);
     };
     Viewer.prototype._initMouseEvents = function () {
@@ -1722,6 +1725,7 @@ var Viewer = /** @class */ (function () {
         gl.uniform1i(this._shadowMapSamplerUniform, 2);
         gl.uniform1f(this._shadowMapSizeUniform, this._shadowMapSize);
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias);
+        gl.uniform1f(this._shadowESMRatioUniform, this.shadowESMRatio);
         var shadowIntensity = Math.max(Math.min(this.shadowIntensity, 1.0), 0.0);
         gl.uniform1i(this._shadowEnabledUniform, (this.shadowEnabled && shadowIntensity !== 0.0) ? 1 : 0);
         gl.uniform1f(this._shadowIntensityUniform, shadowIntensity);

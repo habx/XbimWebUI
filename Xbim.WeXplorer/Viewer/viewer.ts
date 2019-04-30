@@ -279,6 +279,7 @@ export class Viewer {
     private _shadowMapSize: number = 512;
     private _shadowMapSizeChanged = false;
     public shadowMapBias: number = 0.007;
+    public shadowESMRatio: number = 10.0;
     public shadowMapProjectionWidth: number = 60;
     public shadowMapZNear: number = 10;
     public shadowMapZFar: number = 150;
@@ -376,6 +377,7 @@ export class Viewer {
     private _shadowMapSizeUniform: WebGLUniformLocation;
     private _shadowEnabledUniform: WebGLUniformLocation;
     private _shadowIntensityUniform: WebGLUniformLocation;
+    private _shadowESMRatioUniform: WebGLUniformLocation;
 
     private _lightShadowPositionAttrPointer: number;
     private _lightShadowStateAttrPointer: number;
@@ -1061,6 +1063,7 @@ export class Viewer {
         var gl = this.gl;
 
         var handle = new ModelHandle(viewer.gl, geometry);
+        handle.viewer = viewer
         viewer._handles.push(handle);
 
         handle.feedGPU();
@@ -1241,6 +1244,7 @@ export class Viewer {
         this._shadowEnabledUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowEnabled');
         this._shadowIntensityUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowIntensity');
         this._shadowBiasUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowBias');
+        this._shadowESMRatioUniform = gl.getUniformLocation(this._shaderProgram, 'uShadowESMRatio');
 
         this._pointers = new ModelPointers(gl, this._shaderProgram);
     }
@@ -2094,6 +2098,8 @@ export class Viewer {
 
         gl.uniform1f(this._shadowMapSizeUniform, this._shadowMapSize)
         gl.uniform1f(this._shadowBiasUniform, this.shadowMapBias)
+
+        gl.uniform1f(this._shadowESMRatioUniform, this.shadowESMRatio)
 
         const shadowIntensity = Math.max(Math.min(this.shadowIntensity, 1.0), 0.0)
         gl.uniform1i(this._shadowEnabledUniform, (this.shadowEnabled && shadowIntensity !== 0.0) ? 1 : 0)

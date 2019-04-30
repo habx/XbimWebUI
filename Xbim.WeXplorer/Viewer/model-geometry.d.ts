@@ -15,6 +15,7 @@ export declare class ModelGeometry {
     productMaps: {
         [id: number]: ProductMap;
     };
+    transparentProductMaps: [ProductMap];
     productTypeMaps: {
         [id: number]: [ProductMap];
     };
@@ -37,6 +38,7 @@ export declare class ProductMap {
     bBox: Float32Array;
     spans: Array<Int32Array>;
     state: State;
+    hasTransparentShapes: Boolean;
 }
 export declare class Region {
     population: number;

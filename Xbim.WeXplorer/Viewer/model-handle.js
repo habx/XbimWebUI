@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var model_geometry_1 = require("./model-geometry");
 var state_1 = require("./state");
 var product_type_1 = require("./product-type");
+var mat4_1 = require("./matrix/mat4");
+var vec3_1 = require("./matrix/vec3");
 //this class holds pointers to textures, uniforms and data buffers which
 //make up a model in GPU
 var ModelHandle = /** @class */ (function () {
@@ -10,6 +12,18 @@ var ModelHandle = /** @class */ (function () {
         var _this = this;
         //participates in picking operation only if true
         this.pickable = true;
+        this.getBboxScreenSpaceDistance = function (bbox) {
+            var worldPosition = vec3_1.vec3.create();
+            worldPosition = vec3_1.vec3.add(vec3_1.vec3.create(), worldPosition, vec3_1.vec3.fromValues(bbox[0] + bbox[3] * 0.5, bbox[1] + bbox[4] * 0.5, bbox[2] + bbox[5] * 0.5));
+            var viewProjection = mat4_1.mat4.multiply(mat4_1.mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix);
+            var z = vec3_1.vec3.transformMat4(vec3_1.vec3.create(), worldPosition, this.viewer.mvMatrix)[2];
+            return z;
+        };
+        this._zSortFunction = function (a, b) {
+            var aBbox = a.bBox;
+            var bBbox = b.bBox;
+            return this.getBboxScreenSpaceDistance(aBbox) - this.getBboxScreenSpaceDistance(bBbox);
+        };
         if (typeof (gl) == 'undefined' || typeof (model) == 'undefined') {
             throw 'WebGL context and geometry model must be specified';
         }
@@ -96,7 +110,15 @@ var ModelHandle = /** @class */ (function () {
             //gl.enable(gl.BLEND);
             //multiplicative blending
             //gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
-            gl.drawArrays(gl.TRIANGLES, this.model.transparentIndex, this._numberOfIndices - this.model.transparentIndex);
+            var transparentMaps = this.model.transparentProductMaps;
+            transparentMaps.sort(this._zSortFunction.bind(this));
+            transparentMaps.forEach(function (map) {
+                map.spans.forEach(function (span) {
+                    if (span[2]) {
+                        gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                    }
+                });
+            });
             //enable writing to depth buffer and default blending again
             gl.depthMask(true);
             //gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

@@ -184,6 +184,7 @@ var ModelGeometry = /** @class */ (function () {
         //	spans: [Int32Array([int, int]),Int32Array([int, int]), ...] //spanning indexes defining shapes of product and it's state
         //};
         this.productMaps = {};
+        this.transparentProductMaps = [];
         this.productTypeMaps = {};
         this.productIdLookup = [];
         this.getNormal = function (normal1, normal2) {
@@ -323,6 +324,7 @@ var ModelGeometry = /** @class */ (function () {
                                 bBox: bBox,
                                 spans: [],
                                 state: state_1.State.UNDEFINED,
+                                hasTransparentShapes: false,
                             };
                             this.productIdLookup[i + 1] = productLabel;
                             this.productMaps[productLabel] = map;
@@ -392,7 +394,8 @@ var ModelGeometry = /** @class */ (function () {
                                     type: typeEnum.IFCOPENINGELEMENT,
                                     bBox: new Float32Array(6),
                                     renderId: 0,
-                                    spans: []
+                                    spans: [],
+                                    hasTransparentShapes: false,
                                 };
                                 _this.productMaps[shape.pLabel] = map;
                             }
@@ -470,7 +473,11 @@ var ModelGeometry = /** @class */ (function () {
                                 iIndex++;
                             }
                             var end = iIndex;
-                            map.spans.push(new Int32Array([begin, end]));
+                            map.spans.push(new Int32Array([begin, end, shape.transparent ? 1 : 0]));
+                            if (!map.hasTransparentShapes && shape.transparent) {
+                                _this.transparentProductMaps.push(map);
+                            }
+                            map.hasTransparentShapes = map.hasTransparentShapes || shape.transparent;
                             if (shape.transparent)
                                 iIndexBackward -= shapeGeom.indices.length;
                             else

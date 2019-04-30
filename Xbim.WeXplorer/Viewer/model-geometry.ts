@@ -178,6 +178,7 @@ export class ModelGeometry {
     //};
 
     public productMaps: { [id: number]: ProductMap; } = {};
+    public transparentProductMaps: [ProductMap] = [];
     public productTypeMaps: { [id: number]: [ProductMap]; } = {};
     public regions: Region[];
     public transparentIndex: number;
@@ -332,6 +333,7 @@ export class ModelGeometry {
                 bBox: bBox,
                 spans: [],
                 state: State.UNDEFINED,
+                hasTransparentShapes: false,
             };
             this.productIdLookup[i + 1] = productLabel;
             this.productMaps[productLabel] = map;
@@ -405,7 +407,8 @@ export class ModelGeometry {
                         type: typeEnum.IFCOPENINGELEMENT,
                         bBox: new Float32Array(6),
                         renderId: 0,
-                        spans: []
+                        spans: [],
+                        hasTransparentShapes: false,
                     };
                     this.productMaps[shape.pLabel] = map;
                 }
@@ -506,7 +509,13 @@ export class ModelGeometry {
                 }
 
                 var end = iIndex;
-                map.spans.push(new Int32Array([begin, end]));
+                map.spans.push(new Int32Array([begin, end, shape.transparent ? 1 : 0]));
+
+                if (!map.hasTransparentShapes && shape.transparent) {
+                    this.transparentProductMaps.push(map)
+                }
+
+                map.hasTransparentShapes = map.hasTransparentShapes || shape.transparent
 
                 if (shape.transparent) iIndexBackward -= shapeGeom.indices.length;
                 else iIndexForward += shapeGeom.indices.length;
@@ -568,6 +577,7 @@ export class ProductMap {
     bBox: Float32Array;
     spans: Array<Int32Array>;
     state: State;
+    hasTransparentShapes: Boolean;
 }
 
 export class Region {

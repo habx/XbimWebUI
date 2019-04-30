@@ -3,6 +3,9 @@ import { State } from "./state";
 import { ModelPointers } from "./viewer";
 import { ProductType } from './product-type';
 
+import { mat4 } from './matrix/mat4';
+import { vec3 } from './matrix/vec3';
+
 //this class holds pointers to textures, uniforms and data buffers which
 //make up a model in GPU
 export class ModelHandle {
@@ -35,6 +38,8 @@ export class ModelHandle {
     private _stateBuffer: WebGLBuffer;
 
     private _feedCompleted: boolean;
+
+    public viewer: any;
 
     public region: Region;
 
@@ -127,6 +132,33 @@ export class ModelHandle {
         gl.uniform1i(pointers.StyleTextureSizeUniform, this._styleTextureSize);
     }
 
+    private getBboxScreenSpaceDistance = function (bbox) {
+        let worldPosition = vec3.create();
+
+        worldPosition = vec3.add(
+            vec3.create(),
+            worldPosition,
+            vec3.fromValues(
+                bbox[0] + bbox[3] * 0.5,
+                bbox[1] + bbox[4] * 0.5,
+                bbox[2] + bbox[5] * 0.5,
+            )
+        )
+        
+        const viewProjection = mat4.multiply(mat4.create(), this.viewer._pMatrix, this.viewer.mvMatrix)
+
+        const z = vec3.transformMat4(vec3.create(), worldPosition, this.viewer.mvMatrix)[2]
+
+        return z
+    }
+
+    private _zSortFunction = function (a, b) {
+        const aBbox = a.bBox
+        const bBbox = b.bBox
+
+        return this.getBboxScreenSpaceDistance(aBbox) - this.getBboxScreenSpaceDistance(bBbox)
+    }
+
     //this function must be called AFTER 'setActive()' function which sets up active buffers and uniforms
     public draw(mode?: 'solid' | 'transparent' | 'shadow'): void {
         if (this.stopped) return;
@@ -152,7 +184,17 @@ export class ModelHandle {
             //multiplicative blending
             //gl.blendFunc(gl.ZERO, gl.SRC_COLOR);
 
-            gl.drawArrays(gl.TRIANGLES, this.model.transparentIndex, this._numberOfIndices - this.model.transparentIndex);
+            const transparentMaps = this.model.transparentProductMaps
+
+            transparentMaps.sort(this._zSortFunction.bind(this));
+
+            transparentMaps.forEach(map => {
+                map.spans.forEach(span => {
+                    if (span[2]) {
+                        gl.drawArrays(gl.TRIANGLES, span[0], span[1] - span[0]);
+                    }
+                })
+            })
 
             //enable writing to depth buffer and default blending again
             gl.depthMask(true);

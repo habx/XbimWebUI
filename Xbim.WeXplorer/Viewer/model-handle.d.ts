@@ -18,6 +18,7 @@ export declare class ModelHandle {
     private _styleBuffer;
     private _stateBuffer;
     private _feedCompleted;
+    viewer: any;
     region: Region;
     constructor(gl: any, model: ModelGeometry);
     /**
@@ -25,6 +26,8 @@ export declare class ModelHandle {
      */
     private static _instancesNum;
     setActive(pointers: ModelPointers): void;
+    private getBboxScreenSpaceDistance;
+    private _zSortFunction;
     draw(mode?: 'solid' | 'transparent' | 'shadow'): void;
     drawProduct(id: number): void;
     getProductId(renderId: number): number;

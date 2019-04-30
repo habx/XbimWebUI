@@ -64,6 +64,7 @@ export declare class Viewer {
     private _shadowMapSize;
     private _shadowMapSizeChanged;
     shadowMapBias: number;
+    shadowESMRatio: number;
     shadowMapProjectionWidth: number;
     shadowMapZNear: number;
     shadowMapZFar: number;
@@ -109,6 +110,7 @@ export declare class Viewer {
     private _shadowMapSizeUniform;
     private _shadowEnabledUniform;
     private _shadowIntensityUniform;
+    private _shadowESMRatioUniform;
     private _lightShadowPositionAttrPointer;
     private _lightShadowStateAttrPointer;
     private _shadowFrameBuffer;
